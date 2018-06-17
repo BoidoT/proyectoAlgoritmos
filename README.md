@@ -1,14 +1,14 @@
 # proyectoAlgoritmos
 Proyecto de Algoritmos y Estructura de datos (2018) - K1091
 
-#Parte 1:
-###Presentación
+# Parte 1:
+### Presentación
 El objetivo de esta primera parte es poner en práctica el concepto de Estructuras de control de flujo                                  
 de un programa (secuencia, análisis de caso y repetición), como asimismo trabajar con tipos de datos                              
 simples y estructurados (arrays), con expresiones lógicas, asignación interna y externa. También                      
 usaremos flujos conocidos como “Archivos” y patrones algorítmicos de ordenamiento.
 
-##Ejercicio 1
+## Ejercicio 1
 El sorteo de la fase de grupos del Mundial de Fútbol se inicia agrupando a los 32 equipos clasificados                                    
 en 4 bolilleros de 8 equipos cada uno, ordenados de acuerdo al FIFA ranking. Los mejores                              
 pertenecen al bolillero 1 (salvo Rusia que es el anfitrión), los equipos que están por debajo en el                                  
@@ -64,7 +64,8 @@ Argentina, se repite el Paso 2.
 Paso 3: Se sortea el bolillero 3. Si un equipo sale sorteado en un grupo que ya tenga un miembro de                                        
 la misma Confederación (o 2 en el caso Europeo), se repite el Paso 3.
 Paso 4:  Se sortea  el bolillero 4. Se repite el proceso dado para el Paso 3.
-##Ejercicio 3
+
+## Ejercicio 3
 Procesar los archivos generados en el punto anterior (Ejercicio 2) para cargar un Array donde cada                              
 elemento tiene la siguiente estructura:
 Nombre de Equipo
