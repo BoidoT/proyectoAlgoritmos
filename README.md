@@ -74,6 +74,6 @@ Confederación
 Se solicita mostrar por pantalla el contenido del array ordenado por los siguientes criterios:
 ● Número de Grupo.
 ● Nombre de equipo.
-● Confederación. 
+● Confederación.
 ● Número de Grupo y confederación.
 ● Número de Grupo, confederación y nombre de equipo.
