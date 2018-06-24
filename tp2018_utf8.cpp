@@ -5,16 +5,15 @@
     Andrea	Zumárraga	1677640	K1022
     Julián	Sepúlveda	1682696	K1091
     Nicolás	García	1682880	K1091
-    Santiago	Tricarico	1682672	K1091
     Christian	Cortez	1668699	K1091
     Diego	Simon	1682258	K1091
-    Cristian Hoyos	1603796	K1091
 */
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>  
 #include <Windows.h>
+#include <limits.h>
 
 using namespace std;
 
@@ -27,7 +26,7 @@ struct seleccionNacional{
 };
 
 struct grupoMundial{
-  char identificador;
+  char identificador; //Letra del grupo
   seleccionNacional equipos[4]; 
 };
 
@@ -38,9 +37,10 @@ struct seleccionesAgrupadas{
 };
 
 /* PROTOTIPOS */
+bool escribirArchivo(const char[],seleccionNacional[],int); 
 bool escribirArchivo(char[],seleccionNacional[],int);
 bool llenarEquipos(seleccionNacional[]);
-seleccionNacional llenarEquipo(int,char[],char[]);
+seleccionNacional llenarEquipo(int,const char[],const char[]);
 bool sortearEquipos(grupoMundial[],seleccionNacional[]);
 bool leerArchivo(char[],seleccionNacional[],int);
 bool leerGrupos(seleccionesAgrupadas[]);
@@ -48,6 +48,7 @@ void ordenarEquipos(seleccionesAgrupadas[],int);
 int menu(); 
 
 int main(){
+  int opcionMenu;
   SetConsoleOutputCP(CP_UTF8); //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses
   
   //Defino arrays de las estructuras que usaremos
@@ -64,28 +65,35 @@ int main(){
   if(!leerGrupos(selAgrupadas)){ //Leo los archivos generados
     return 1; 
   } 
-  ordenarEquipos(selAgrupadas,menu()-1); //Pregunto al usuario como quiero ordenar y muestro el resultado 
-  return 0; //Termino la ejecucion correctamente
+  while(true){
+    opcionMenu = menu();
+    if(!opcionMenu){ // 0 (false) = salir
+      return 0; //Termino la ejecucion correctamente
+    }
+    ordenarEquipos(selAgrupadas,opcionMenu); //Pregunto al usuario como quiero ordenar y muestro el resultado 
+  }
 }
 
 /* Menu de opciones - Retorna opcion seleccionada */
 int menu(){
-  int opcion = 0;
+  int opcion = -1;
   cout << "Cómo desea ordenar los equipos?" << endl;
   cout << "\t1: Letra de Grupo." << endl;
   cout << "\t2: Nombre de equipo." << endl;
   cout << "\t3: Confederación." << endl;
   cout << "\t4: Número de Grupo y confederación." << endl;
   cout << "\t5: Número de Grupo, confederación y nombre de equipo." << endl;
+  cout << "\t0: Salir." << endl;
   do{
     cin >> opcion;
-    if(!cin || opcion < 1 || opcion > 5){
+    if(!cin || opcion < 0 || opcion > 5){
       cout << "Opcion no válida" << endl;      
       cin.clear();
       cin.ignore(INT_MAX, '\n');
-      opcion = 0;
+      opcion = -1;
       continue;
-    }     
+    }
+    system("cls"); //Limpio la consola     
     return opcion;
   }while(true);
 }
@@ -93,7 +101,7 @@ int menu(){
 /* Genera los 32 equipos 
   Parametros: 
     selNacionales -> array de structs seleccionNacional a generar con los 32 equipos del mundial
-  Retorna -> true si la operación fue correcta, false si hubo un error al generar el archivo binario con los equipos
+  Retorna -> true si la operacin fue correcta, false si hubo un error al generar el archivo binario con los equipos
 */
 bool llenarEquipos(seleccionNacional selNacionales[]){
   selNacionales[0] = llenarEquipo(1, "Rusia", "UEFA");
@@ -146,7 +154,7 @@ bool llenarEquipos(seleccionNacional selNacionales[]){
  *  confederacion -> confederacion del equipo 
  * Retorna -> un struct seleccionNacional
 */
-seleccionNacional llenarEquipo(int bolillero,char nombre[],char confederacion[]){
+seleccionNacional llenarEquipo(int bolillero,const char nombre[],const char confederacion[]){
   seleccionNacional equipo;
   equipo.numBolillero = bolillero;
   strcpy(equipo.nombreEquipo,nombre);
@@ -159,10 +167,10 @@ seleccionNacional llenarEquipo(int bolillero,char nombre[],char confederacion[])
   Parametros: 
     grupos -> array de struct grupoMundial donde se asignara 4 equipos a cada uno
     selecciones -> array de struct seleccionNacional con los 32 equipos a sortear
-  Retorna -> true si la operación fue correcta, false si hubo un error al generar los archivos binarios de los grupos
+  Retorna -> true si la operacin fue correcta, false si hubo un error al generar los archivos binarios de los grupos
 */
 bool sortearEquipos(grupoMundial grupos[],seleccionNacional selecciones[]){
-  srand (time(NULL)); // Inicializo mi función random con una seed del timestamp actual
+  srand (time(NULL)); // Inicializo mi funcin random con una seed del timestamp actual
   char letras[] = "ABCDEFGH";
   char nombreGrupo[9]; //Aca se va a almacenar el nombre del archivo a generar 
   int x,y; //Auxiliares
@@ -317,7 +325,7 @@ bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
 /* Ordena los equipos
  * Parametros:
  *  selAgrupadas -> array de structs seleccionesAgrupadas con los 32 equipos
- *  modo -> tipo de ordenamiento: 0=letra grupo, 1=nombre equipo, 2=confederacion, 3=grupo y confederacion, 4=grupo, confederacion y nombre
+ *  modo -> tipo de ordenamiento: 1=letra grupo, 2=nombre equipo, 3=confederacion, 4=grupo y confederacion, 5=grupo, confederacion y nombre
 */
 void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
   char letras[] = "ABCDEFGH";
@@ -325,7 +333,7 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
   bool cambio; //Indica que se hizo un cambio 
   seleccionesAgrupadas tmp; //Temporal para hacer el intercambio 
   switch(modo){
-    case 0: //letra grupo
+    case 1: //letra grupo
       do{ //Se repite hasta que no haya mas cambios
         cambio = false; //se resetea bandera
         for(x=0;x<31;x++){
@@ -340,7 +348,7 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
         }
       }while(cambio);
     break;
-    case 1: //nombre equipo
+    case 2: //nombre equipo
       do{
         cambio = false;
         for(x=0;x<31;x++){
@@ -355,7 +363,7 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
         }
       }while(cambio);    
     break;
-    case 2: //confederacion
+    case 3: //confederacion
       do{
         cambio = false;
         for(x=0;x<31;x++){
@@ -370,7 +378,7 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
         }
       }while(cambio);       
     break;
-    case 3: //grupo y confederacion
+    case 4: //grupo y confederacion
       do{
         cambio = false;
         for(x=0;x<31;x++){
@@ -393,7 +401,7 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
         }
       }while(cambio);      
     break;  
-    case 4: //grupo, confederacion y nombre   
+    case 5: //grupo, confederacion y nombre   
       do{
         cambio = false;
         for(x=0;x<31;x++){
@@ -427,7 +435,7 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
   }   
   //Muestro en pantalla el resultado
   for(x=0;x<32;x++){
-    cout << " Grupo: " << selAgrupadas[x].grupo << " " << selAgrupadas[x].nombreEquipo << " - " << selAgrupadas[x].confederacion << endl;
+    cout << x+1 << " Grupo: " << selAgrupadas[x].grupo << " " << selAgrupadas[x].nombreEquipo << " - " << selAgrupadas[x].confederacion << endl;
   }      
   system("pause"); //Para pausar el programa
 }
@@ -439,6 +447,15 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
  *  cant -> Cantidad de registros del array proporcionado a grabar
  * Retorna -> true si la escritura fue exitosa, false en caso contrario
  */ 
+
+/* Sobrecarga de funcion para que acepte el parametro nombreArchivo como un string constante (definido con comillas dobles) sin tirar warning al compilar */
+
+bool escribirArchivo(const char nombreArchivo[],seleccionNacional selNacionales[],int cant){
+  char _nombreArchivo[15]; 
+  strcpy(_nombreArchivo,nombreArchivo);
+  return escribirArchivo(_nombreArchivo,selNacionales,cant);
+}
+
 bool escribirArchivo(char nombreArchivo[],seleccionNacional selNacionales[],int cant){
   char nombreArchivoExt[15]; //Nombre de archivo mas extension
   FILE *archivo; //Puntero al archivo

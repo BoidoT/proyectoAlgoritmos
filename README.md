@@ -1,3 +1,14 @@
+
+ ______ ______     ______  __      ______  ______  ______  __  ______ __    __  ______  ______      
+/\__  _/\  == \   /\  __ \/\ \    /\  ___\/\  __ \/\  == \/\ \/\__  _/\ "-./  \/\  __ \/\  ___\     
+\/_/\ \\ \  _-/   \ \  __ \ \ \___\ \ \__ \ \ \/\ \ \  __<\ \ \/_/\ \\ \ \-./\ \ \ \/\ \ \___  \    
+   \ \_\\ \_\      \ \_\ \_\ \_____\ \_____\ \_____\ \_\ \_\ \_\ \ \_\\ \_\ \ \_\ \_____\/\_____\   
+    \/_/ \/_/       \/_/\/_/\/_____/\/_____/\/_____/\/_/ /_/\/_/  \/_/ \/_/  \/_/\/_____/\/_____/   
+                                                                                                    
+
+#NOTA:
+El código fuente esta codificado como UTF8 por lo cual debe abrirse con un editor que soporte dicha codificación. (dev-cpp aparentemente solo soporta ANSI)
+
 # proyectoAlgoritmos
 Proyecto de Algoritmos y Estructura de datos (2018) - K1091
 
