@@ -51,6 +51,7 @@ int menu();
 
 int main(){
   int opcionMenu;
+  //setlocale(LC_CTYPE, "es-ES");
   #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8); //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses (solo windows)
   #endif
