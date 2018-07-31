@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+
 #ifdef _WIN32 //Solo incluir si se compila en windows
   #include <Windows.h> //Libreria para setear la consola en utf8 en windows
 #endif
@@ -49,7 +50,7 @@ int menu();
 
 int main(){
 
-  //setlocale(LC_ALL, "");
+  setlocale(LC_ALL, "es-ES");
   #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8); //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses (solo windows)
   #endif
@@ -88,7 +89,7 @@ void mostrarGrupos(seleccionesAgrupadas selAgrupadas[]){
 	for(int x=0;x<32;x++){
       cout << x+1 << " Grupo: " << selAgrupadas[x].grupo << " " << selAgrupadas[x].nombreEquipo << " - " << selAgrupadas[x].confederacion << endl;
     }
-  cout << "Precione una tecla para volver al menú" << endl;
+  cout << "Presione una tecla para volver al menú" << endl;
   cin.clear();
   cin.ignore(INT_MAX, '\n');
   cin.get();
@@ -96,7 +97,7 @@ void mostrarGrupos(seleccionesAgrupadas selAgrupadas[]){
 }
 int menu(){
   int opcion = -1;
-  cout << "Menú de sorteo de Grupos del Mundial de Futbol 2018." << endl;
+  cout << "Menú de sorteo de Grupos del Mundial de Futbol 2018."<<endl;
   cout << "\t1: Sortear Equipos." << endl;
   cout << "\t2: Mostrar Grupos Conformados." << endl;
   cout << "\t0: Salir." << endl;
