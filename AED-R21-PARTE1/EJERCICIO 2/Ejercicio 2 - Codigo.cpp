@@ -12,6 +12,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <fcntl.h>
+#include <io.h>
+
 #ifdef _WIN32 //Solo incluir si se compila en windows
   #include <Windows.h> //Libreria para setear la consola en utf8 en windows
 #endif
@@ -39,7 +42,6 @@ struct grupoMundial{
 };
 
 /* PROTOTIPOS */
-bool escribirArchivo(const char[],seleccionNacional[],int);
 bool escribirArchivo(char[],seleccionNacional[],int);
 bool sortearEquipos(grupoMundial[],seleccionNacional[]);
 bool leerArchivo(char[],seleccionNacional[],int);
@@ -49,7 +51,7 @@ int menu();
 
 int main(){
 
-  //setlocale(LC_CTYPE, "es-ES");
+  //setlocale(LC_ALL, "");
   #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8); //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses (solo windows)
   #endif
@@ -57,7 +59,7 @@ int main(){
   seleccionNacional selNacionales[32];
   grupoMundial gruposSorteo[8];
   seleccionesAgrupadas selAgrupadas[32];
-  char rutaArchivoSelecciones [27] = "..\\EJERCICIO 1\\selecciones";
+  char rutaArchivoSelecciones[] = "..\\EJERCICIO 1\\selecciones.bin";
   int opcionMenu;
   
   while(true){
@@ -119,31 +121,27 @@ int menu(){
 }
 
 bool leerArchivo(char nombreArchivo[],seleccionNacional lecturaEquipos[],int cant){
-  char nombreArchivoExt[30]; //Nombre de archivo mas extension
   FILE *archivo; //Puntero al archivo
-  strcpy(nombreArchivoExt,nombreArchivo);
-  strcat(nombreArchivoExt,".bin");
-  archivo = fopen(nombreArchivoExt,"rb"); //Lo abro en modo lectura binaria
+  archivo = fopen(nombreArchivo,"rb"); //Lo abro en modo lectura binaria
   if(archivo == NULL){
-    cout << "Error al abrir el archivo "<< nombreArchivoExt << " en modo lectura" << endl;
+    cout << "Error al abrir el archivo "<< nombreArchivo << " en modo lectura" << endl;
     return false;
   }
   fread(lecturaEquipos, sizeof(seleccionNacional), cant, archivo);
   if(ferror(archivo)){ //Compruebo que se hayan podido grabar los datos (ferror() == 0)
-    cout << "Error al leer el archivo "<< nombreArchivoExt << endl;
+    cout << "Error al leer el archivo "<< nombreArchivo << endl;
     return false;
   }
   fclose(archivo);
-  //cout << "Archivo leído exitosamente " << nombreArchivoExt << endl;
+  printf("Archivo leído exitosamente %s\n", nombreArchivo);
   return true;
 }
 
 bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
   char letras[] = "ABCDEFGH";
   int x,y;
-  char nombreArchivo[8];
-  strcpy(nombreArchivo,"grupo_x"); //La x sera sustituida por la letra del grupo
-
+  char nombreArchivo[12];
+  strcpy(nombreArchivo,"grupo_x.bin"); //La x sera sustituida por la letra del grupo
   seleccionNacional selNacional[4]; //Array temporal de seleccionNacional para guardar la lectura de archivos
   for(x=0;x<8;x++){
     nombreArchivo[6] = letras[x];
@@ -295,13 +293,6 @@ bool sortearEquipos(grupoMundial grupos[],seleccionNacional selecciones[]){
  * Retorna -> true si la escritura fue exitosa, false en caso contrario
  */
 
-/* Sobrecarga de funcion para que acepte el parametro nombreArchivo como un string constante (definido con comillas dobles) sin tirar warning al compilar */
-
-bool escribirArchivo(const char nombreArchivo[],seleccionNacional selNacionales[],int cant){
-  char _nombreArchivo[15];
-  strcpy(_nombreArchivo,nombreArchivo);
-  return escribirArchivo(_nombreArchivo,selNacionales,cant);
-}
 
 bool escribirArchivo(char nombreArchivo[],seleccionNacional selNacionales[],int cant){
   char nombreArchivoExt[15]; //Nombre de archivo mas extension
