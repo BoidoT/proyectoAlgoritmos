@@ -12,8 +12,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <fcntl.h>
-#include <io.h>
 
 #ifdef _WIN32 //Solo incluir si se compila en windows
   #include <Windows.h> //Libreria para setear la consola en utf8 en windows
