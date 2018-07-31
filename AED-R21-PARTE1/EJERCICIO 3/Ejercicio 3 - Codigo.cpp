@@ -39,11 +39,7 @@ struct seleccionesAgrupadas{
 };
 
 /* PROTOTIPOS */
-bool escribirArchivo(const char[],seleccionNacional[],int);
-bool escribirArchivo(char[],seleccionNacional[],int);
-bool llenarEquipos(seleccionNacional[]);
 seleccionNacional llenarEquipo(int,const char[],const char[]);
-bool sortearEquipos(grupoMundial[],seleccionNacional[]);
 bool leerArchivo(char[],seleccionNacional[],int);
 bool leerGrupos(seleccionesAgrupadas[]);
 void ordenarEquipos(seleccionesAgrupadas[],int);

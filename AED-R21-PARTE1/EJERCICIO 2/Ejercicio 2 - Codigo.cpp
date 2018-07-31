@@ -27,6 +27,12 @@ struct seleccionNacional{
   bool asignadoGrupo; //Bandera para indicar que el equipo fue asignado a un grupo
 };
 
+struct seleccionesAgrupadas{
+  char nombreEquipo[30];
+  char confederacion[20];
+  char grupo;
+};
+
 struct grupoMundial{
   char identificador; //Letra del grupo
   seleccionNacional equipos[4];
@@ -37,7 +43,9 @@ bool escribirArchivo(const char[],seleccionNacional[],int);
 bool escribirArchivo(char[],seleccionNacional[],int);
 bool sortearEquipos(grupoMundial[],seleccionNacional[]);
 bool leerArchivo(char[],seleccionNacional[],int);
-
+bool leerGrupos(seleccionesAgrupadas[]);
+void mostrarGrupos(seleccionesAgrupadas[]);
+int menu();
 
 int main(){
 
@@ -48,17 +56,67 @@ int main(){
   //Defino arrays de las estructuras que usaremos
   seleccionNacional selNacionales[32];
   grupoMundial gruposSorteo[8];
+  seleccionesAgrupadas selAgrupadas[32];
   char rutaArchivoSelecciones [27] = "..\\EJERCICIO 1\\selecciones";
-
-  if(!leerArchivo(rutaArchivoSelecciones, selNacionales, 32)){
-    return 1;
-  }
-  if(!sortearEquipos(gruposSorteo,selNacionales)){ //Sorteo los grupos
-    return 1;
+  int opcionMenu;
+  
+  while(true){
+    opcionMenu = menu();
+    switch (opcionMenu){
+	case 0:
+      return 0; //Termino la ejecucion correctamente
+	case 1: //Realizar un nuevo sorteo de equipos
+	  if(!leerArchivo(rutaArchivoSelecciones, selNacionales, 32)){ //Lee la lista de selecciones generadas en el ejercicio 1
+        return 1;
+	  }
+	  if(!sortearEquipos(gruposSorteo,selNacionales)){ //Sortea los equipos en 8 grupos
+		return 1;
+      }
+	  break;
+	case 2: //Leo los archivos y muestro los grupos conformados
+	  if(!leerGrupos(selAgrupadas)){
+        return 1;
+	  }
+	  mostrarGrupos(selAgrupadas);
+	  break;
+	}
   }
   system("pause");
 }
 
+void mostrarGrupos(seleccionesAgrupadas selAgrupadas[]){
+	for(int x=0;x<32;x++){
+      cout << x+1 << " Grupo: " << selAgrupadas[x].grupo << " " << selAgrupadas[x].nombreEquipo << " - " << selAgrupadas[x].confederacion << endl;
+    }
+  cout << "Precione una tecla para volver al menú" << endl;
+  cin.clear();
+  cin.ignore(INT_MAX, '\n');
+  cin.get();
+  return;
+}
+int menu(){
+  int opcion = -1;
+  cout << "Menú de sorteo de Grupos del Mundial de Futbol 2018." << endl;
+  cout << "\t1: Sortear Equipos." << endl;
+  cout << "\t2: Mostrar Grupos Conformados." << endl;
+  cout << "\t0: Salir." << endl;
+  do{
+    cin >> opcion;
+    if(!cin || opcion < 0 || opcion > 2){
+      cout << "Opcion no válida" << endl;
+      cin.clear();
+      cin.ignore(INT_MAX, '\n');
+      opcion = -1;
+      continue;
+    }
+    #ifdef _WIN32
+      system("cls"); //Limpio la consola   (windows)
+    #else
+      system("clear"); //Limpio la consola  (unix)
+    #endif
+    return opcion;
+  }while(true);
+}
 
 bool leerArchivo(char nombreArchivo[],seleccionNacional lecturaEquipos[],int cant){
   char nombreArchivoExt[30]; //Nombre de archivo mas extension
@@ -76,9 +134,32 @@ bool leerArchivo(char nombreArchivo[],seleccionNacional lecturaEquipos[],int can
     return false;
   }
   fclose(archivo);
-  cout << "Archivo leído exitosamente " << nombreArchivoExt << endl;
+  //cout << "Archivo leído exitosamente " << nombreArchivoExt << endl;
   return true;
 }
+
+bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
+  char letras[] = "ABCDEFGH";
+  int x,y;
+  char nombreArchivo[8];
+  strcpy(nombreArchivo,"grupo_x"); //La x sera sustituida por la letra del grupo
+
+  seleccionNacional selNacional[4]; //Array temporal de seleccionNacional para guardar la lectura de archivos
+  for(x=0;x<8;x++){
+    nombreArchivo[6] = letras[x];
+    if(!leerArchivo(nombreArchivo,selNacional,4)){ //Leo el archivo y le paso el struct temporal de 4 equipos
+      cout << "Hubo un error al procesar el archivo binario de uno del grupo " << letras[x];
+      return false;
+    }
+    for(y=0;y<4;y++){ //Agrego los resultados al array de seleccionesAgrupadas
+      strcpy(selAgrupadas[(x*4)+y].nombreEquipo,selNacional[y].nombreEquipo);
+      strcpy(selAgrupadas[(x*4)+y].confederacion,selNacional[y].confederacion);
+      selAgrupadas[(x*4)+y].grupo = letras[x];
+    }
+  }
+  return true;
+}
+
 
 bool sortearEquipos(grupoMundial grupos[],seleccionNacional selecciones[]){
   srand (time(NULL)); // Inicializo mi funcin random con una seed del timestamp actual
