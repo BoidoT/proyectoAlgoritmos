@@ -87,7 +87,7 @@ bool llenarEquipos(seleccionNacional selNacionales[]){
   selNacionales[29] = llenarEquipo(4, "Panamá", "Concacaf");
   selNacionales[30] = llenarEquipo(4, "Corea del Sur", "AFC");
   selNacionales[31] = llenarEquipo(4, "Arabia Saudita", "AFC");
-  if(!escribirArchivo("selecciones",selNacionales,32)){
+  if(!escribirArchivo("selecciones.bin",selNacionales,32)){
     cout << "Hubo un error al generar el archivo binario con las selecciones" << endl;
     return false;
   }else{
@@ -113,18 +113,15 @@ seleccionNacional llenarEquipo(int bolillero,const char nombre[],const char conf
 }
 
 bool escribirArchivo(const char nombreArchivo[],seleccionNacional selNacionales[],int cant){
-  char nombreArchivoExt[15]; //Nombre de archivo mas extension
   FILE *archivo; //Puntero al archivo
-  strcpy(nombreArchivoExt,nombreArchivo);
-  strcat(nombreArchivoExt,".bin");
-  archivo = fopen(nombreArchivoExt,"wb"); //Lo abro en modo escritura binaria (Sobreescribe)
+  archivo = fopen(nombreArchivo,"wb"); //Lo abro en modo escritura binaria (Sobreescribe)
   if(archivo == NULL){ //Si el puntero al archivo es null es que no se pudo abrir
-    cout << "Error al abrir el archivo " << nombreArchivoExt << " en modo escritura" << endl;
+    cout << "Error al abrir el archivo " << nombreArchivo << " en modo escritura" << endl;
     return false;
   }
   fwrite(selNacionales, sizeof(struct seleccionNacional), cant, archivo); //Grabo los struct en el archivo
   if(ferror(archivo)){ //Compruebo que se hayan podido grabar los datos (ferror() == 0)
-    cout << "Error al escribir en el archivo "<< nombreArchivoExt << endl;
+    cout << "Error al escribir en el archivo "<< nombreArchivo << endl;
     return false;
   }
   fclose(archivo);
