@@ -164,7 +164,7 @@ bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
 bool sortearEquipos(grupoMundial grupos[],seleccionNacional selecciones[]){
   srand (time(NULL)); // Inicializo mi funcin random con una seed del timestamp actual
   char letras[] = "ABCDEFGH";
-  char nombreGrupo[9]; //Aca se va a almacenar el nombre del archivo a generar
+  char nombreGrupo[]="grupo_X.bin"; //Aca se va a almacenar el nombre del archivo a generar
   int x,y; //Auxiliares
   int mismaConfederacion; //Variable contadora para evaluar equipos de la misma confederacion en un grupo
   int numEquipo; //Equipo sorteado
@@ -277,8 +277,7 @@ bool sortearEquipos(grupoMundial grupos[],seleccionNacional selecciones[]){
 
   //Recorro los grupos y lo grabo en archivos binarios
   for(x=0;x<8;x++){
-    strcpy(nombreGrupo,"grupo_");
-    strncat(nombreGrupo,&letras[x],1);
+    nombreGrupo[6]=letras[x];
     if(!escribirArchivo(nombreGrupo,grupos[x].equipos,4)){
       return false;
     }
@@ -297,18 +296,16 @@ bool sortearEquipos(grupoMundial grupos[],seleccionNacional selecciones[]){
 
 
 bool escribirArchivo(char nombreArchivo[],seleccionNacional selNacionales[],int cant){
-  char nombreArchivoExt[15]; //Nombre de archivo mas extension
+  
   FILE *archivo; //Puntero al archivo
-  strcpy(nombreArchivoExt,nombreArchivo);
-  strcat(nombreArchivoExt,".bin");
-  archivo = fopen(nombreArchivoExt,"wb"); //Lo abro en modo escritura binaria (Sobreescribe)
+  archivo = fopen(nombreArchivo,"wb"); //Lo abro en modo escritura binaria (Sobreescribe)
   if(archivo == NULL){ //Si el puntero al archivo es null es que no se pudo abrir
-    cout << "Error al abrir el archivo " << nombreArchivoExt << " en modo escritura" << endl;
+    cout << "Error al abrir el archivo " << nombreArchivo << " en modo escritura" << endl;
     return false;
   }
   fwrite(selNacionales, sizeof(struct seleccionNacional), cant, archivo); //Grabo los struct en el archivo
   if(ferror(archivo)){ //Compruebo que se hayan podido grabar los datos (ferror() == 0)
-    cout << "Error al escribir en el archivo "<< nombreArchivoExt << endl;
+    cout << "Error al escribir en el archivo "<< nombreArchivo << endl;
     return false;
   }
   fclose(archivo);
