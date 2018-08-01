@@ -109,12 +109,11 @@ int menu(){
 bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
   char letras[] = "ABCDEFGH";
   int x,y;
-  char nombreArchivo[25];
-  strcpy(nombreArchivo,"..\\EJERCICIO 2\\grupo_x"); //La x sera sustituida por la letra del grupo
+  char nombreArchivo[]="..\\EJERCICIO 2\\grupo_x.bin";
 
   seleccionNacional selNacional[4]; //Array temporal de seleccionNacional para guardar la lectura de archivos
   for(x=0;x<8;x++){
-    nombreArchivo[strlen(nombreArchivo)-1] = letras[x];
+    nombreArchivo[strlen(nombreArchivo)-5] = letras[x];
     if(!leerArchivo(nombreArchivo,selNacional,4)){ //Leo el archivo y le paso el struct temporal de 4 equipos
       cout << "Hubo un error al procesar el archivo binario del grupo " << letras[x] << endl;
       return false;
@@ -238,18 +237,15 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
 }
 
 bool leerArchivo(char nombreArchivo[],seleccionNacional lecturaEquipos[],int cant){
-  char nombreArchivoExt[30]; //Nombre de archivo mas extension
   FILE *archivo; //Puntero al archivo
-  strcpy(nombreArchivoExt,nombreArchivo);
-  strcat(nombreArchivoExt,".bin");
-  archivo = fopen(nombreArchivoExt,"rb"); //Lo abro en modo lectura binaria
+  archivo = fopen(nombreArchivo,"rb"); //Lo abro en modo lectura binaria
   if(archivo == NULL){
-    cout << "Error al abrir el archivo "<< nombreArchivoExt << " en modo lectura" << endl;
+    cout << "Error al abrir el archivo "<< nombreArchivo << " en modo lectura" << endl;
     return false;
   }
   fread(lecturaEquipos, sizeof(seleccionNacional), cant, archivo);
   if(ferror(archivo)){ //Compruebo que se hayan podido grabar los datos (ferror() == 0)
-    cout << "Error al leer el archivo "<< nombreArchivoExt << endl;
+    cout << "Error al leer el archivo "<< nombreArchivo << endl;
     return false;
   }
   fclose(archivo);
