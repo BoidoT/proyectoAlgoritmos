@@ -11,7 +11,7 @@
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>
+#include <stdio.h>
 #ifdef _WIN32 //Solo incluir si se compila en windows
   #include <Windows.h> //Libreria para setear la consola en utf8 en windows
 #endif
@@ -57,6 +57,8 @@ int main(){
   seleccionesAgrupadas selAgrupadas[32];
 
   if(!leerGrupos(selAgrupadas)){ //Leo los archivos generados
+    cout << "Presione una tecla para salir..." << endl;
+    getchar();
     return 1;
   }
   while(true){
@@ -92,6 +94,8 @@ int menu(){
     #else
       system("clear"); //Limpio la consola  (unix)
     #endif
+    cin.clear();
+    cin.ignore(INT_MAX, '\n');
     return opcion;
   }while(true);
 }
@@ -105,14 +109,14 @@ int menu(){
 bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
   char letras[] = "ABCDEFGH";
   int x,y;
-  char nombreArchivo[23];
+  char nombreArchivo[25];
   strcpy(nombreArchivo,"..\\EJERCICIO 2\\grupo_x"); //La x sera sustituida por la letra del grupo
 
   seleccionNacional selNacional[4]; //Array temporal de seleccionNacional para guardar la lectura de archivos
   for(x=0;x<8;x++){
-    nombreArchivo[21] = letras[x];
+    nombreArchivo[strlen(nombreArchivo)-1] = letras[x];
     if(!leerArchivo(nombreArchivo,selNacional,4)){ //Leo el archivo y le paso el struct temporal de 4 equipos
-      cout << "Hubo un error al procesar el archivo binario de uno del grupo " << letras[x];
+      cout << "Hubo un error al procesar el archivo binario del grupo " << letras[x] << endl;
       return false;
     }
     for(y=0;y<4;y++){ //Agrego los resultados al array de seleccionesAgrupadas
@@ -131,7 +135,7 @@ bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
 */
 void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
   char letras[] = "ABCDEFGH";
-  int x,y,z;
+  int x;
   bool cambio; //Indica que se hizo un cambio
   seleccionesAgrupadas tmp; //Temporal para hacer el intercambio
   switch(modo){
@@ -139,13 +143,11 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
       do{ //Se repite hasta que no haya mas cambios
         cambio = false; //se resetea bandera
         for(x=0;x<31;x++){
-          for(y=x;y<32;y++){
-            if(selAgrupadas[y].grupo < selAgrupadas[x].grupo){ //Comparo registros
-              tmp = selAgrupadas[y];
-              selAgrupadas[y] = selAgrupadas[x];
-              selAgrupadas[x] = tmp;
-              cambio = true; //Si hubo un cambio se marca la bandera para hacer un ciclo mas
-            }
+          if(selAgrupadas[x+1].grupo < selAgrupadas[x].grupo){ //Comparo registros
+            tmp = selAgrupadas[x];
+            selAgrupadas[x] = selAgrupadas[x+1];
+            selAgrupadas[x+1] = tmp;
+            cambio = true; //Si hubo un cambio se marca la bandera para hacer un ciclo mas
           }
         }
       }while(cambio);
@@ -154,13 +156,11 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
       do{
         cambio = false;
         for(x=0;x<31;x++){
-          for(y=x;y<32;y++){
-            if(strcmp(selAgrupadas[y].nombreEquipo,selAgrupadas[x].nombreEquipo) < 0){
-              tmp = selAgrupadas[y];
-              selAgrupadas[y] = selAgrupadas[x];
-              selAgrupadas[x] = tmp;
-              cambio = true;
-            }
+          if(strcmp(selAgrupadas[x+1].nombreEquipo,selAgrupadas[x].nombreEquipo) < 0){
+            tmp = selAgrupadas[x];
+            selAgrupadas[x] = selAgrupadas[x+1];
+            selAgrupadas[x+1] = tmp;
+            cambio = true;
           }
         }
       }while(cambio);
@@ -169,13 +169,11 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
       do{
         cambio = false;
         for(x=0;x<31;x++){
-          for(y=x;y<32;y++){
-            if(strcmp(selAgrupadas[y].confederacion,selAgrupadas[x].confederacion) < 0){
-              tmp = selAgrupadas[y];
-              selAgrupadas[y] = selAgrupadas[x];
-              selAgrupadas[x] = tmp;
-              cambio = true;
-            }
+          if(strcmp(selAgrupadas[x+1].confederacion,selAgrupadas[x].confederacion) < 0){
+            tmp = selAgrupadas[x];
+            selAgrupadas[x] = selAgrupadas[x+1];
+            selAgrupadas[x+1] = tmp;
+            cambio = true;
           }
         }
       }while(cambio);
@@ -184,20 +182,18 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
       do{
         cambio = false;
         for(x=0;x<31;x++){
-          for(y=x;y<32;y++){
-            if(selAgrupadas[y].grupo < selAgrupadas[x].grupo){ //Primero comparo el grupo
-              tmp = selAgrupadas[y];
-              selAgrupadas[y] = selAgrupadas[x];
+          if(selAgrupadas[x+1].grupo < selAgrupadas[x].grupo){ //Primero comparo el grupo
+            tmp = selAgrupadas[x];
+            selAgrupadas[x] = selAgrupadas[x+1];
+            selAgrupadas[x+1] = tmp;
+            cambio = true;
+          }
+          if(selAgrupadas[x+1].grupo == selAgrupadas[x].grupo){ //Si los grupos son iguales comparo la confederacion
+            if(strcmp(selAgrupadas[x+1].confederacion,selAgrupadas[x].confederacion) < 0){
+              tmp = selAgrupadas[x+1];
+              selAgrupadas[x+1] = selAgrupadas[x];
               selAgrupadas[x] = tmp;
               cambio = true;
-            }
-            if(selAgrupadas[y].grupo == selAgrupadas[x].grupo){ //Si los grupos son iguales comparo la confederacion
-              if(strcmp(selAgrupadas[y].confederacion,selAgrupadas[x].confederacion) < 0){
-                tmp = selAgrupadas[y];
-                selAgrupadas[y] = selAgrupadas[x];
-                selAgrupadas[x] = tmp;
-                cambio = true;
-              }
             }
           }
         }
@@ -207,27 +203,25 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
       do{
         cambio = false;
         for(x=0;x<31;x++){
-          for(y=x;y<32;y++){
-            if(selAgrupadas[y].grupo < selAgrupadas[x].grupo){ //Primero comparo el grupo
-              tmp = selAgrupadas[y];
-              selAgrupadas[y] = selAgrupadas[x];
+          if(selAgrupadas[x+1].grupo < selAgrupadas[x].grupo){ //Primero comparo el grupo
+            tmp = selAgrupadas[x+1];
+            selAgrupadas[x+1] = selAgrupadas[x];
+            selAgrupadas[x] = tmp;
+            cambio = true;
+          }
+          if(selAgrupadas[x+1].grupo == selAgrupadas[x].grupo){ //Si los grupos son iguales comparo la confederacion
+            if(strcmp(selAgrupadas[x+1].confederacion,selAgrupadas[x].confederacion) < 0){
+              tmp = selAgrupadas[x+1];
+              selAgrupadas[x+1] = selAgrupadas[x];
               selAgrupadas[x] = tmp;
               cambio = true;
             }
-            if(selAgrupadas[y].grupo == selAgrupadas[x].grupo){ //Si los grupos son iguales comparo la confederacion
-              if(strcmp(selAgrupadas[y].confederacion,selAgrupadas[x].confederacion) < 0){
-                tmp = selAgrupadas[y];
-                selAgrupadas[y] = selAgrupadas[x];
+            if(strcmp(selAgrupadas[x+1].confederacion,selAgrupadas[x].confederacion) == 0){ //Si el grupo y confederacion son iguales comparo los nombres de equipo
+              if(strcmp(selAgrupadas[x+1].nombreEquipo,selAgrupadas[x].nombreEquipo) < 0){
+                tmp = selAgrupadas[x+1];
+                selAgrupadas[x+1] = selAgrupadas[x];
                 selAgrupadas[x] = tmp;
                 cambio = true;
-              }
-              if(strcmp(selAgrupadas[y].confederacion,selAgrupadas[x].confederacion) == 0){ //Si el grupo y confederacion son iguales comparo los nombres de equipo
-                if(strcmp(selAgrupadas[y].nombreEquipo,selAgrupadas[x].nombreEquipo) < 0){
-                  tmp = selAgrupadas[y];
-                  selAgrupadas[y] = selAgrupadas[x];
-                  selAgrupadas[x] = tmp;
-                  cambio = true;
-                }
               }
             }
           }
@@ -240,9 +234,7 @@ void ordenarEquipos(seleccionesAgrupadas selAgrupadas[],int modo){
     cout << x+1 << " Grupo: " << selAgrupadas[x].grupo << " " << selAgrupadas[x].nombreEquipo << " - " << selAgrupadas[x].confederacion << endl;
   }
   cout << "Precione una tecla para volver al menú" << endl;
-  cin.clear();
-  cin.ignore(INT_MAX, '\n');
-  cin.get();
+  getchar();
 }
 
 bool leerArchivo(char nombreArchivo[],seleccionNacional lecturaEquipos[],int cant){

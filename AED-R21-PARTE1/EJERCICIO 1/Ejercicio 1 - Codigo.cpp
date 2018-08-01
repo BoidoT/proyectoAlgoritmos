@@ -11,11 +11,10 @@
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>
+#include <stdio.h>
 #ifdef _WIN32 //Solo incluir si se compila en windows
   #include <Windows.h> //Libreria para setear la consola en utf8 en windows
 #endif
-#include <limits.h>
 
 using namespace std;
 
@@ -30,16 +29,15 @@ struct seleccionNacional{
 
 /* PROTOTIPOS */
 bool escribirArchivo(const char[],seleccionNacional[],int);
-bool escribirArchivo(char[],seleccionNacional[],int);
 bool llenarEquipos(seleccionNacional[]);
 seleccionNacional llenarEquipo(int,const char[],const char[]);
 
 
 int main(){
   int opcionMenu;
-  //setlocale(LC_CTYPE, "es-ES");
   #ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8); //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses (solo windows)
+    //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses (solo windows)
+    SetConsoleOutputCP(CP_UTF8);
   #endif
   //Defino arrays de las estructuras que usaremos
   seleccionNacional selNacionales[32];
@@ -47,10 +45,12 @@ int main(){
   if(!llenarEquipos(selNacionales)){ //Defino los equipos
     return 1;
   }
-  system("pause");
+  cout << "Presione una tecla para continuar...";
+  getchar();
   return 0;
 }
 
+//Genera los 32 equipos y los graba en el archivo binario selecciones.bin
 bool llenarEquipos(seleccionNacional selNacionales[]){
   selNacionales[0] = llenarEquipo(1, "Rusia", "UEFA");
   selNacionales[1] = llenarEquipo(1, "Alemania", "UEFA");
@@ -113,12 +113,6 @@ seleccionNacional llenarEquipo(int bolillero,const char nombre[],const char conf
 }
 
 bool escribirArchivo(const char nombreArchivo[],seleccionNacional selNacionales[],int cant){
-  char _nombreArchivo[15];
-  strcpy(_nombreArchivo,nombreArchivo);
-  return escribirArchivo(_nombreArchivo,selNacionales,cant);
-}
-
-bool escribirArchivo(char nombreArchivo[],seleccionNacional selNacionales[],int cant){
   char nombreArchivoExt[15]; //Nombre de archivo mas extension
   FILE *archivo; //Puntero al archivo
   strcpy(nombreArchivoExt,nombreArchivo);

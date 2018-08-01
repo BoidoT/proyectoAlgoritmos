@@ -11,9 +11,8 @@
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
-
-
 #ifdef _WIN32 //Solo incluir si se compila en windows
   #include <Windows.h> //Libreria para setear la consola en utf8 en windows
 #endif
@@ -49,8 +48,6 @@ void mostrarGrupos(seleccionesAgrupadas[]);
 int menu();
 
 int main(){
-
-  setlocale(LC_ALL, "es-ES");
   #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8); //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses (solo windows)
   #endif
@@ -60,41 +57,46 @@ int main(){
   seleccionesAgrupadas selAgrupadas[32];
   char rutaArchivoSelecciones[] = "..\\EJERCICIO 1\\selecciones.bin";
   int opcionMenu;
-  
+
   while(true){
     opcionMenu = menu();
     switch (opcionMenu){
-	case 0:
-      return 0; //Termino la ejecucion correctamente
-	case 1: //Realizar un nuevo sorteo de equipos
-	  if(!leerArchivo(rutaArchivoSelecciones, selNacionales, 32)){ //Lee la lista de selecciones generadas en el ejercicio 1
-        return 1;
-	  }
-	  if(!sortearEquipos(gruposSorteo,selNacionales)){ //Sortea los equipos en 8 grupos
-		return 1;
-      }
-	  break;
-	case 2: //Leo los archivos y muestro los grupos conformados
-	  if(!leerGrupos(selAgrupadas)){
-        return 1;
-	  }
-	  mostrarGrupos(selAgrupadas);
-	  break;
-	}
+	    case 0:
+        return 0; //Termino la ejecucion correctamente
+	    break;
+      case 1: //Realizar un nuevo sorteo de equipos
+	      if(!leerArchivo(rutaArchivoSelecciones, selNacionales, 32)){ //Lee la lista de selecciones generadas en el ejercicio 1
+          cout << "No se pudo leer el archivo selecciones.bin, presione una tecla para salir..." << endl;
+          getchar();
+          return 1;
+	      }
+	      if(!sortearEquipos(gruposSorteo,selNacionales)){ //Sortea los equipos en 8 grupos
+          cout << "No se pudo escribir los archivos de grupos, presione una tecla para salir..." << endl;
+          getchar();
+		      return 1;
+        }
+	    break;
+	    case 2: //Leo los archivos y muestro los grupos conformados
+        if(!leerGrupos(selAgrupadas)){
+          cout << "No se pudo leer los archivos de grupos, presione una tecla para salir..." << endl;
+          getchar();
+          return 1;
+        }
+	      mostrarGrupos(selAgrupadas);
+        cout << "Presione una tecla para volver al menú" << endl;
+        getchar();
+	    break;
+    }
   }
-  system("pause");
 }
 
 void mostrarGrupos(seleccionesAgrupadas selAgrupadas[]){
 	for(int x=0;x<32;x++){
       cout << x+1 << " Grupo: " << selAgrupadas[x].grupo << " " << selAgrupadas[x].nombreEquipo << " - " << selAgrupadas[x].confederacion << endl;
     }
-  cout << "Presione una tecla para volver al menú" << endl;
-  cin.clear();
-  cin.ignore(INT_MAX, '\n');
-  cin.get();
   return;
 }
+
 int menu(){
   int opcion = -1;
   cout << "Menú de sorteo de Grupos del Mundial de Futbol 2018."<<endl;
@@ -115,6 +117,8 @@ int menu(){
     #else
       system("clear"); //Limpio la consola  (unix)
     #endif
+    cin.clear();
+    cin.ignore(INT_MAX, '\n');
     return opcion;
   }while(true);
 }
@@ -145,7 +149,6 @@ bool leerGrupos(seleccionesAgrupadas selAgrupadas[]){
   for(x=0;x<8;x++){
     nombreArchivo[6] = letras[x];
     if(!leerArchivo(nombreArchivo,selNacional,4)){ //Leo el archivo y le paso el struct temporal de 4 equipos
-      cout << "Hubo un error al procesar el archivo binario de uno del grupo " << letras[x];
       return false;
     }
     for(y=0;y<4;y++){ //Agrego los resultados al array de seleccionesAgrupadas
