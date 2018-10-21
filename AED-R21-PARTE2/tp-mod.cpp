@@ -266,14 +266,16 @@ void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
     //Si llego aca es que encontro un segundo registro del mismo partido, hay que determinar si el gol es del mismo jugador o hay que agregar un nodo
     auxNL = mPartidos[listaGol -> codEquipo -1][x]; //Hago una copia del principio de la lista 
     crearNodo = true; //Si esta bandera queda en true, se suma gol y no se añade nodo
-    while(auxNL -> siguiente != NULL){ //Recorro la lista
+    do{ //Recorro la lista
       if(strcmp(auxNL -> nombreJugador,listaGol -> nombreJugador) == 0){ //Si el jugador es el mismo sumar los goles
         auxNL -> goles++;
         crearNodo = false; //Marco la bandera en false para evitar que se cree un nodo
         break;
       }
-      auxNL = auxNL -> siguiente;
-    }
+	  if(auxNL->siguiente !=NULL){
+		auxNL = auxNL -> siguiente;
+	  }
+    }while(auxNL -> siguiente != NULL);
     if(crearNodo){ // encontro un segundo registro del mismo partido y el jugador es distinto, agregar nuevo nodo
       //Si no encontre el jugador en la lista de goles del partido insertar un nuevo nodo
       nuevoNodo = new nodoLista();
