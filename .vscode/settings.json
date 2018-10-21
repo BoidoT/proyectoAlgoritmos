@@ -1,7 +1,6 @@
 {
-  "files.associations": {
-    "*.tcc": "cpp",
-    "ostream": "cpp",
-    "system_error": "cpp"
-  }
+    "files.associations": {
+        "iostream": "cpp",
+        "ostream": "cpp"
+    }
 }
