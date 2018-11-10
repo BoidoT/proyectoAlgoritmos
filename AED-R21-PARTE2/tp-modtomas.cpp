@@ -387,13 +387,24 @@ void insertarOrdenado(){
 void insertarJugadorEnRank(lstRankFechas *&cl, nodoLista *nl){
   if(cl==NULL){ //Si es mi primer elemento de mi lista, completo la informacion
     cl = new lstRankFechas;
+    cl->siguiente=NULL;
     cl->fecha.fecha = nl -> fecha;
     cl->fecha.lstRankJugadores = new lstRankJugador;
     strcpy(cl->fecha.lstRankJugadores->jugador.nombreJugador, nl->nombreJugador);
     cl->fecha.lstRankJugadores->jugador.goles= nl->goles;
+    cl->fecha.lstRankJugadores->siguiente = NULL;
     return;
   }
   lstRankFechas *lrfAux = cl;
+  if(lrfAux->fecha.fecha == nl->fecha){
+      if(strcmp(lrfAux->fecha.lstRankJugadores->jugador.nombreJugador)){
+        
+      }
+      while (lrfAux->fecha.lstRankJugadores->siguiente!=NULL){
+
+      }
+      return;
+  }
   while(lrfAux->siguiente!=NULL){ // Si ya existe la fecha en mi lista
     if(lrfAux->fecha.fecha == nl->fecha){
       while (lrfAux->fecha.lstRankJugadores->siguiente!=NULL){
