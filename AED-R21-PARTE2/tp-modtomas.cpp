@@ -400,7 +400,7 @@ void insertarJugadorEnRank(lstRankFechas *&cl, nodoLista *nl){
   if(lrfAux->fecha.fecha == nl->fecha){ //Si mi primer Fecha es la misma a la que estoy cargando al Ranking
       if(nl->goles>lrfAux->fecha.lstRankJugadores->jugador.goles){ //Si la cantidad de goles que estoy ingesando es mayor al primer elemento de mi lista
         lrjAux = new lstRankJugador; //Inicializo mi nodo auxiliar de lstRankJugador
-        strcpy(lrjAux->jugador.nombreJugador,nl->NombreJugador);
+        strcpy(lrjAux->jugador.nombreJugador,nl->nombreJugador);
         lrjAux->jugador.goles = nl->goles;
         lrjAux->siguiente = lrfAux->fecha.lstRankJugadores;
         lrfAux->fecha.lstRankJugadores=lrjAux;
