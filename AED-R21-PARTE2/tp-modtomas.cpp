@@ -470,7 +470,7 @@ void recorrerMatrizGoles (matriz mPartidos,equipos e[]){
   dibujarArbol(arbol);
   pausa("\n>> Presione enter para recorrer el arbol binario en modo inOrder\n");
   recorrerInOrder(arbol);
-  pausa("\n>> Precione enter para salir del programa\n");
+  pausa("\n>> Presione enter para salir del programa\n");
 }
 
 void equipoGolListaInsertar(equipoGolLista *&l,equipoGol valor){
