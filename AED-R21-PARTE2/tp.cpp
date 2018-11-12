@@ -14,7 +14,26 @@ struct equipos{
   char nombre[50];
 };
 
-//Para guardar en la matriz
+// ESTRUCTURA PARA RANKING DE GOLEADORES
+struct rankJugador{
+  char nombreJugador[50];
+  char equipo[50];
+  int goles;
+};
+struct lstRankJugador{
+  rankJugador jugador;
+  lstRankJugador *siguiente;
+};
+struct rankFecha{
+  int fecha;
+  lstRankJugador *lstRankJugadores;
+};
+struct lstRankFechas{
+  rankFecha fecha;
+  lstRankFechas *siguiente;
+};
+
+// Para guardar en la matriz
 struct nodoLista{
   char nombreJugador[50];
   int fecha;
@@ -58,6 +77,9 @@ bool grabarBinario(registroGol *&);
 bool leerBinario(registroGol *&);
 void generarMatrizGoles(registroGol *&, matriz);
 void recorrerMatrizGoles (matriz,equipos[]);
+void insertarJugadorEnRank(lstRankFechas *&, nodoLista *,char []);
+void insertarJugadorEnRankGlobal(lstRankFechas *&, nodoLista *,char []);
+void ordenarRankGlobal(lstRankFechas *&);
 //Funciones para btree
 void insertaNodo(nodoArbol *&,equipoGol);
 void recorrerInOrder(nodoArbol *);
@@ -68,6 +90,7 @@ int dibujarArbolRecursivo(nodoArbol *,bool,int,int,char[20][120]);
 void pausa(const char *);
 void pausa();
 bool lineaEnBlanco(char [],int);
+void formatoFecha(int,char []);
 
 int main(){
   #ifdef _WIN32
@@ -81,7 +104,9 @@ int main(){
 	listaGol = NULL;
   listaGolArchivo = NULL;
   matriz mPartidos;
-  leerDatosTexto(e,listaGol);
+  if(!leerDatosTexto(e,listaGol)){
+    return 0;
+  }
   grabarBinario(listaGol);
   leerBinario(listaGolArchivo);
   generarMatrizGoles(listaGolArchivo , mPartidos);
@@ -91,6 +116,7 @@ int main(){
 
 //Funcion auxiliar que lee los archivos separados por comas: equipos.csv y goles.csv para armar las listas
 bool leerDatosTexto(equipos e[],registroGol *&golPila){
+  
   FILE *f;
   char linea[60]; //Aca se lee cada linea
   char temp[60]; //Usado para convertir char[] -> int
@@ -217,6 +243,7 @@ void insertar(registroGol *&listaGol, int idGol, int fecha, int codEquipo, char 
 
 //Graba en el Archivo binario toda la lista
 bool grabarBinario(registroGol *&listaGol){
+  pausa("\n>> Presione enter para generar el archivo binario\n");
   registroGol *pNodo;
   pNodo = listaGol;
   FILE* f;
@@ -227,11 +254,13 @@ bool grabarBinario(registroGol *&listaGol){
   while (pNodo != NULL){ //Recorro la lista y voy escribiendo el archivo binario
     fwrite(pNodo,sizeof(registroGol),1,f);
     if (ferror(f)){ //Error al escribir los datos
+      cout <<"ERROR: No se pudo generar el archivo datos.bin" << endl;
       return false;
     }
     pNodo = pNodo->siguiente;
   }
   fclose(f);
+  cout <<"Se ha generado el archivo datos.bin de forma exitosa" << endl;
   return true;
 }
 
@@ -258,6 +287,7 @@ bool leerBinario(registroGol *&listaGol){
 }
 
 void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
+  pausa("\n>> Presione enter para mostrar el listado de fechas y goles\n");
   int partido,x,y;
   bool crearNodo; //Bandera para indicar si se debe crear un nuevo nodo de gol en el partido actual (si el jugador coincide)
   nodoLista* nuevoNodo = NULL,*auxNL;
@@ -321,42 +351,224 @@ void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
   }
 }
 
+void insertarJugadorEnRank(lstRankFechas *&cl, nodoLista *nl,char equipo[]){
+  //Si es mi primer elemento de mi lista, completo la informacion
+  if(cl==NULL || cl -> fecha.fecha > nl -> fecha){
+    //Creo nodo
+    lstRankFechas *nuevo = new lstRankFechas;
+    nuevo -> fecha.fecha = nl -> fecha;
+    nuevo -> fecha.lstRankJugadores = new lstRankJugador;
+    strcpy(nuevo->fecha.lstRankJugadores -> jugador.nombreJugador, nl -> nombreJugador);
+    nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
+    strcpy(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);
+    nuevo -> fecha.lstRankJugadores -> siguiente = NULL;
+    nuevo -> siguiente = cl;
+    cl = nuevo;
+    return;
+  }
+
+  if(cl -> fecha.fecha == nl -> fecha){
+    //nUEVO NODO
+    lstRankJugador *nuevoJ = new lstRankJugador;
+    strcpy(nuevoJ -> jugador.nombreJugador,nl -> nombreJugador);
+    nuevoJ -> jugador.goles = nl -> goles;
+    strcpy(nuevoJ -> jugador.equipo,equipo);
+    nuevoJ -> siguiente = NULL;
+
+    lstRankJugador *lrjAux = cl -> fecha.lstRankJugadores;
+    if(cl->fecha.lstRankJugadores->jugador.goles<nl->goles){
+        nuevoJ -> siguiente = cl->fecha.lstRankJugadores;
+        cl->fecha.lstRankJugadores = nuevoJ;
+        return;
+    }
+    while(lrjAux -> siguiente != NULL){
+      if(lrjAux ->siguiente->jugador.goles<nl->goles){
+        nuevoJ -> siguiente = lrjAux ->siguiente;
+        lrjAux->siguiente = nuevoJ;
+        return;
+      }
+      lrjAux = lrjAux -> siguiente;    
+    }
+    lrjAux -> siguiente = nuevoJ; //Asigno nuevo nodo Jugador
+    return;
+  }
+  
+  lstRankFechas *lrfAux = cl;
+  while(lrfAux -> siguiente != NULL){ // Si ya existe la fecha en mi lista
+    if(lrfAux -> siguiente -> fecha.fecha > nl -> fecha){
+      //Creo nodo
+      lstRankFechas *nuevo = new lstRankFechas;
+      nuevo -> fecha.fecha = nl -> fecha;
+      nuevo -> fecha.lstRankJugadores = new lstRankJugador;
+      strcpy(nuevo->fecha.lstRankJugadores -> jugador.nombreJugador, nl -> nombreJugador);
+      nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
+      strcpy(nuevo->fecha.lstRankJugadores -> jugador.equipo,equipo);
+      nuevo -> fecha.lstRankJugadores -> siguiente = NULL;
+      nuevo -> siguiente = lrfAux -> siguiente;
+      lrfAux -> siguiente = nuevo;
+      return;
+    }
+    if(lrfAux -> siguiente -> fecha.fecha == nl -> fecha){
+      //Nuevo nodo
+      lstRankJugador *nuevoJ = new lstRankJugador;
+      strcpy(nuevoJ -> jugador.nombreJugador,nl -> nombreJugador);
+      nuevoJ -> jugador.goles = nl -> goles;
+      strcpy(nuevoJ -> jugador.equipo,equipo);
+      nuevoJ -> siguiente = NULL;
+      
+      //Comparo los goles con el primer jugador
+      //lrfAux -> siguiente -> fecha.lstRankJugadores -> jugador.goles << endl;
+      lstRankJugador *lrjAux = lrfAux -> siguiente -> fecha.lstRankJugadores;
+      if(lrfAux->siguiente->fecha.lstRankJugadores->jugador.goles<=nl->goles){
+        nuevoJ -> siguiente = lrfAux->siguiente->fecha.lstRankJugadores;
+        lrfAux->siguiente->fecha.lstRankJugadores = nuevoJ;
+        return;
+      }
+      while(lrjAux -> siguiente != NULL){
+        if(lrjAux ->siguiente->jugador.goles<=nl->goles){
+          nuevoJ -> siguiente = lrjAux ->siguiente;
+          lrjAux->siguiente = nuevoJ;
+          return;
+        }
+        lrjAux = lrjAux -> siguiente;    
+      }
+      lrjAux -> siguiente = nuevoJ; //Asigno nuevo jugador
+      return;
+    }
+    lrfAux = lrfAux -> siguiente;
+  }
+
+  //Creo nodo
+  lstRankFechas *nuevo = new lstRankFechas;
+  nuevo -> fecha.fecha = nl -> fecha;
+  nuevo -> fecha.lstRankJugadores = new lstRankJugador;
+  strcpy(nuevo->fecha.lstRankJugadores -> jugador.nombreJugador, nl -> nombreJugador);
+  nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
+  strcpy(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);  
+  nuevo -> fecha.lstRankJugadores -> siguiente = NULL;
+  nuevo -> siguiente = lrfAux -> siguiente;
+  lrfAux -> siguiente = nuevo;
+  return;
+}
+
+void insertarJugadorEnRankGlobal(lstRankFechas *&cl, nodoLista *nl,char equipo[]){
+  if(cl == NULL){
+    lstRankFechas *nuevo = new lstRankFechas;
+    nuevo -> fecha.lstRankJugadores = new lstRankJugador;
+    strcpy(nuevo -> fecha.lstRankJugadores -> jugador.nombreJugador,nl -> nombreJugador);
+    nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
+    strcat(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);    
+    nuevo -> siguiente = NULL;      
+    cl = nuevo;
+    return;
+  }
+
+  lstRankFechas *aux = cl;
+  while(aux -> siguiente != NULL){
+    if(strcmp(aux -> siguiente -> fecha.lstRankJugadores -> jugador.nombreJugador,nl -> nombreJugador) == 0){
+      aux -> fecha.lstRankJugadores -> jugador.goles += nl -> goles;
+      return;
+    }
+    aux = aux -> siguiente;
+  }
+  lstRankFechas *nuevo = new lstRankFechas;
+  nuevo -> fecha.lstRankJugadores = new lstRankJugador;
+  strcpy(nuevo -> fecha.lstRankJugadores -> jugador.nombreJugador,nl -> nombreJugador);
+  nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
+  strcat(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);    
+  nuevo -> siguiente = NULL;    
+  aux -> siguiente = nuevo;
+}
+
+void ordenarRankGlobal(lstRankFechas *&cl){
+  bool cambio ;
+  //Si la lista esta vacia o tiene un solo elemento salir
+  if(cl == NULL || cl -> siguiente == NULL){ 
+    return;
+  }
+  lstRankFechas *aux = cl, *auxSig;
+  rankFecha temp;
+  while(aux -> siguiente != NULL){
+    auxSig = aux -> siguiente;
+    while(auxSig != NULL){
+      if(aux->fecha.lstRankJugadores -> jugador.goles < auxSig->fecha.lstRankJugadores -> jugador.goles){
+        temp = auxSig -> fecha;
+        auxSig->fecha = aux->fecha;
+        aux->fecha = temp;          
+      }
+      auxSig = auxSig -> siguiente;                    
+    }    
+    aux = aux -> siguiente;
+    auxSig = aux -> siguiente;
+  }
+}
+
 void recorrerMatrizGoles (matriz mPartidos,equipos e[]){
-  cout << "-------- RESULTADO RAKING --------" << endl;
+  cout << "-------- RESULTADO RANKING PAISES --------" << endl;
   nodoLista* auxNL = NULL;
+  lstRankFechas* cabezaRanking = NULL; // Lista de Ranking de Goleadores de una Fecha
+  lstRankFechas* cabezaRankingGlobal = NULL;
   int cantGoles,x,y;
   equipoGol eg[32];
-  for(x=0; x<32; x++){
+  char fechaDmy[11];
+  for(x=0; x<32; x++){ // Cada iteracion corresponde a un equipo
     cout << "Equipo " << e[x].nombre << endl;
-    cantGoles=0;
-    for(y=0; y<7; y++){
-      auxNL = mPartidos[x][y];
-      if(auxNL == NULL){
+    cantGoles=0; // Inicializo el contador de goles totales para un Equipo
+    for(y=0; y<7; y++){ // Recorro los 7 posibles partidos del equipo en el mundial
+      auxNL = mPartidos[x][y]; //Asigno el puntero nodo auxiliar a una posicion de mi matriz estatica
+      if(auxNL == NULL){ // Si no encuentro un partido registrado en esta posicion de la matriz, avanzo al siguiente.
         continue;
       }
-      cout << "\tPartido " << y+1 << " (" << mPartidos[x][y] -> fecha << ")" << endl;
-      while(auxNL != NULL){
+      formatoFecha(mPartidos[x][y] -> fecha,fechaDmy);
+      cout << "\tPartido " << y+1 << " (" << fechaDmy << ")" << endl; // Encontre un partido con goles para un equipo
+      while(auxNL != NULL){ // Recorro mi lista de goles para ese partido
         cantGoles += auxNL->goles;
-        cout << "\t\t" << auxNL -> nombreJugador << " - Goles: " << auxNL-> goles << endl;
+        cout << "\t\t" << auxNL -> nombreJugador << " - Goles: " << auxNL-> goles << endl; //Muestro los goles de un jugador para una fecha determinada
+        insertarJugadorEnRank(cabezaRanking, auxNL,e[x].nombre);
+        insertarJugadorEnRankGlobal(cabezaRankingGlobal, auxNL,e[x].nombre);
         auxNL = auxNL -> siguiente;
       }
     }
-    cout << "\tTotal goles : " << cantGoles << "\n\n" << endl;
-    cout << "--------------------------------------------------------" <<endl;
-    strncpy(eg[x].nombreEquipo,e[x].nombre,50);
+    cout << "\tTotal goles : " << cantGoles << "\n\n" << endl; // Una vez que recorri los 7 partidos de un equipo imprimo el total de goles del equipo
+    cout << "--------------------------------------------------------" <<endl; // Divisor de Equipo
+    strncpy(eg[x].nombreEquipo,e[x].nombre,50); // Asigno el nombre del equipo y su cantidad de goles a un vector auxiliar.
     eg[x].goles = cantGoles;
   }
+  pausa("\n>> Presione enter para mostrar el ranking de jugadores por fecha\n");
+  cout << "-------- RESULTADO RANKING JUGADORES POR FECHA --------" << endl;
+  while(cabezaRanking != NULL){
+    formatoFecha(cabezaRanking -> fecha.fecha,fechaDmy);
+    cout << "Fecha: " << fechaDmy << endl;    
+    while(cabezaRanking -> fecha.lstRankJugadores != NULL){
+      cout << "\t" << cabezaRanking -> fecha.lstRankJugadores -> jugador.nombreJugador;
+      cout << " - Goles: " << cabezaRanking -> fecha.lstRankJugadores -> jugador.goles;
+      cout << " - Equipo: " << cabezaRanking -> fecha.lstRankJugadores -> jugador.equipo << endl;
+      cabezaRanking -> fecha.lstRankJugadores = cabezaRanking -> fecha.lstRankJugadores -> siguiente; 
+    }
+    cabezaRanking = cabezaRanking -> siguiente;
+  }
+  pausa("\n>> Presione enter para mostrar el ranking general de jugadores\n");
+  cout << "-------- RESULTADO RANKING JUGADORES GENERAL --------" << endl;
+  ordenarRankGlobal(cabezaRankingGlobal);
+  while(cabezaRankingGlobal != NULL){
+    cout << "\t" << cabezaRankingGlobal -> fecha.lstRankJugadores -> jugador.nombreJugador;
+    cout << " - Goles: " << cabezaRankingGlobal -> fecha.lstRankJugadores -> jugador.goles;
+    cout << " - Equipo: " << cabezaRankingGlobal -> fecha.lstRankJugadores -> jugador.equipo << endl;
+    cabezaRankingGlobal -> fecha.lstRankJugadores = cabezaRankingGlobal -> fecha.lstRankJugadores -> siguiente; 
+    cabezaRankingGlobal = cabezaRankingGlobal -> siguiente;
+  }  
   //CREAR BTREE
   nodoArbol *arbol = NULL;
   for(x=0;x<32;x++){
     insertaNodo(arbol,eg[x]);
   }
-  pausa("\n>> Presione una tecla para mostrar el arbol binario completo\n");
+  pausa("\n>> Presione enter para mostrar el arbol binario completo\n");
   cout << "--- ARBOL BINARIO DE GOLES POR EQUIPO ---" << endl;
   cout << "Nodo: goles(cantidad equipos)\n" << endl;
   dibujarArbol(arbol);
-  pausa("\n>> Presione una tecla para recorrer el arbol binario en modo inOrder\n");
+  pausa("\n>> Presione enter para recorrer el arbol binario en modo inOrder\n");
   recorrerInOrder(arbol);
+  pausa("\n>> Precione enter para salir del programa\n");
 }
 
 void equipoGolListaInsertar(equipoGolLista *&l,equipoGol valor){
@@ -502,7 +714,7 @@ void recorrerInOrder(nodoArbol *arbol){
 }
 
 //AUXILIARES
-//Muestra el mensaje en pantalla presione enter para continuar y espera la pulsacion de una tecla
+//Muestra el mensaje en pantalla presione enter para continuar y espera la pulsacion de enter
 void pausa(){
   pausa("Presione enter para continuar..."); //Mensaje por default
 }
@@ -518,4 +730,16 @@ bool lineaEnBlanco(char str[],int largo){
     }
   }
   return true;
+}
+
+void formatoFecha(int ymd,char fecha[]){
+  char buff[10],*ptr,delim = '/';
+  itoa(ymd,&buff[0],10);
+  ptr = &buff[0];
+  fecha[0] = '\0';
+  strncat(fecha,ptr+6,2);
+  strncat(fecha,&delim,1);
+  strncat(fecha,ptr+4,2);
+  strncat(fecha,&delim,1);  
+  strncat(fecha,ptr,4);
 }
