@@ -408,7 +408,7 @@ void insertarJugadorEnRank(lstRankFechas *&cl, nodoLista *nl){
       }// Fin de evaluar el primer jugador para la primer fecha
       while (lrfAux->fecha.lstRankJugadores->siguiente!=NULL){
         
-
+ 
       }
       return;
   }
