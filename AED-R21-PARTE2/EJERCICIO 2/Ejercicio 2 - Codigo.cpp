@@ -1,9 +1,10 @@
 #include <iostream>
-#include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #ifdef _WIN32 //Solo incluir si se compila en windows
   #include <Windows.h> //Libreria para setear la consola en utf8 en windows
+  #define DS "\\" //Separador de directorios
+#else
+  #define DS "/" //Separador de directorios
 #endif
 
 using namespace std;
@@ -14,34 +15,38 @@ struct equipos{
   char nombre[50];
 };
 
-// ESTRUCTURA PARA RANKING DE GOLEADORES
+//Estructuras para el ranking de jugadores por fecha y global
 struct rankJugador{
   char nombreJugador[50];
   char equipo[50];
   int goles;
 };
-struct lstRankJugador{
-  rankJugador jugador;
-  lstRankJugador *siguiente;
+struct nodoRankJugador{
+  rankJugador datos;
+  nodoRankJugador *siguiente;
 };
 struct rankFecha{
   int fecha;
-  lstRankJugador *lstRankJugadores;
+  nodoRankJugador *nodoRankJugadores;
 };
-struct lstRankFechas{
-  rankFecha fecha;
-  lstRankFechas *siguiente;
+struct nodoRankFechas{
+  rankFecha datos;
+  nodoRankFechas *siguiente;
 };
 
-// Para guardar en la matriz
-struct nodoLista{
+//Matrix de goleadores por fecha
+struct jugadorFecha{
   char nombreJugador[50];
   int fecha;
   int goles;
-  nodoLista *siguiente;
 };
 
-typedef nodoLista *matriz[32][7];
+struct nodoJugadorFecha{
+  jugadorFecha datos;
+  nodoJugadorFecha *siguiente;
+};
+
+typedef nodoJugadorFecha *matriz[32][7];
 
 struct registroGol{
   int idGol;
@@ -49,47 +54,28 @@ struct registroGol{
   int fecha;
   char nombreJugador[50];
   int idPartido;
-  registroGol* siguiente;
 };
 
-//Estructuras para el arbol
+struct nodoRegistroGol{
+  registroGol datos;
+  nodoRegistroGol* siguiente;
+};
+
 struct equipoGol{ //Almacena la cantidad de goles por equipo
   char nombreEquipo[50];
   int goles;
 };
 
-//Ya que puede haber mas de un equipo en cada nodo del arbol se arma una pila
-struct equipoGolLista{
-  equipoGol dato;
-  equipoGolLista *siguiente;
-};
-
-struct nodoArbol{
-  equipoGolLista *lista;
-  nodoArbol *izquierda;
-  nodoArbol *derecha;
-};
-
-void insertar(registroGol *&lista, int idGol, int fecha, int codEquipo, char *nombreJugador, int idPartido);
-bool leerDatosTexto(equipos [],registroGol *&);
-int recorrerLista(registroGol *&listaGol);
-bool grabarBinario(registroGol *&);
-bool leerBinario(registroGol *&);
-void generarMatrizGoles(registroGol *&, matriz);
+void insertar(nodoRegistroGol *&lista, registroGol d);
+bool leerBinario(nodoRegistroGol *&, equipos []);
+void generarMatrizGoles(nodoRegistroGol *&, matriz);
 void recorrerMatrizGoles (matriz,equipos[]);
-void insertarJugadorEnRank(lstRankFechas *&, nodoLista *,char []);
-void insertarJugadorEnRankGlobal(lstRankFechas *&, nodoLista *,char []);
-void ordenarRankGlobal(lstRankFechas *&);
-//Funciones para btree
-void insertaNodo(nodoArbol *&,equipoGol);
-void recorrerInOrder(nodoArbol *);
-void equipoGolListaInsertar(equipoGolLista *&,equipoGol);
-void dibujarArbol(nodoArbol *);
-int dibujarArbolRecursivo(nodoArbol *,bool,int,int,char[20][120]);
+void insertarJugadorEnRank(nodoRankFechas *&, nodoJugadorFecha *,char []);
+void insertarJugadorEnRankGlobal(nodoRankFechas *&, nodoJugadorFecha *,char []);
+void ordenarRankGlobal(nodoRankFechas *&);
 /* Funciones auxiliares */
 void pausa(const char *);
 void pausa();
-bool lineaEnBlanco(char [],int);
 void formatoFecha(int,char []);
 
 int main(){
@@ -98,120 +84,68 @@ int main(){
     SetConsoleOutputCP(CP_UTF8); //Cambia el code page a UTF-8 para evitar problemas con carácteres no ingleses (solo windows)
   #endif
   //Variables
-  registroGol* listaGol; //Lista dinamica que carga el Archivo
-  registroGol* listaGolArchivo;
-  equipos e[32]; //Array de equipos
-  listaGol = NULL;
-  listaGolArchivo = NULL;
+	nodoRegistroGol* listaGol = NULL; //Lista dinamica que carga el Archivo
   matriz mPartidos;
-  /*if(!leerDatosTexto(e,listaGol)){
-    return 0;
+  equipos vEquipos[32];
+  if(!leerBinario(listaGol,vEquipos)){
+    pausa(">> Presione enter para salir del programa");
+    return 1;
   }
-  grabarBinario(listaGol);*/
-  leerBinario(listaGolArchivo);
-  generarMatrizGoles(listaGolArchivo , mPartidos);
-  recorrerMatrizGoles(mPartidos,e);
+  generarMatrizGoles(listaGol , mPartidos);
+  recorrerMatrizGoles(mPartidos,vEquipos);
+  pausa(">> Presione enter para salir del programa");
   return 0;
 }
 
-//Funcion auxiliar que lee los archivos separados por comas: equipos.csv y goles.csv para armar las listas
-bool leerDatosTexto(equipos e[],registroGol *&golPila){
-  
-  FILE *f;
-  char linea[60]; //Aca se lee cada linea
-  char temp[60]; //Usado para convertir char[] -> int
-  char *coma[3],*eof; //Puntero para separar los campos de cada linea
-  int x;
-  //Campos goles
-  int idGol;
-  int fecha;
-  int idEquipo;
-  int idPartido;
-  char nombreJugador[50];
-
-  //Leo archivo de texto de los equipos
-  f = fopen("..\\EJERCICIO 1\\equipos.csv", "r");
-  if(f == NULL) {
-    cout << "ERROR: No se pudo leer el archivo [equipos.csv]" << endl;
+//Lee el Archivo toda la lista, en memoria
+bool leerBinario(nodoRegistroGol *&listaGol,equipos e[]){
+  registroGol auxRG;
+  equipos auxE;
+  FILE* f;
+  int registros;
+  f = fopen(".." DS "EJERCICIO 1" DS "goles.bin", "rb");
+  if (f == NULL){ //Error al leer el archivo
+    cout << "ERROR: No se pudo leer el archivo [goles.bin]" << endl;
     return false;
   }
-  //Leo el archivo de texto
-  for(x = 0;x < 32 && fgets (linea, 60, f) != NULL;x++){
-    if(linea[0] == '#'){ //Ignoro encabezado
-      x--;
-      continue;
+  do{
+    registros = fread(&auxRG,sizeof(registroGol),1,f);
+    if(registros == 0){ //Cuando llego al final del archivo salir
+      break;
     }
-    if (ferror(f)){ //Error al leer los datos
+    insertar(listaGol, auxRG);
+    if(ferror(f)){ //Error de lectura
+      cout << "ERROR: No se pudo leer el archivo [goles.bin]" << endl;
       return false;
     }
-    coma[0] = strchr(linea,','); //Puntero a la posicion donde esta la coma para cortar el id de equipo
-    eof = strchr(linea,'\r'); //Puntero a la posicion donde esta el salto de linea (CRLF)
-    if(eof == NULL){
-      eof = strchr(linea,'\n'); //Puntero a la posicion donde esta el salto de linea (LF)
-    }
-    //Extraigo ID de equipo
-    temp[0] = '\0';
-    strncat(temp,linea,coma[0] - &linea[0]);
-    e[x].id = atoi(temp);
-    //Extraigo Nombre de equipo
-    temp[0] = '\0';
-    strncat(temp,coma[0]+1,eof - coma[0]-1);
-    strncpy(e[x].nombre,temp,50);
-  }
+  }while(true);
   fclose(f);
-
-  //Leo archivo de texto de los goles
-  f = fopen("..\\EJERCICIO 1\\goles.csv", "r");
-  if(f == NULL) {
-    cout << "ERROR: No se pudo leer el archivo [goles.csv]" << endl;
+  f = fopen(".." DS "EJERCICIO 1" DS "equipos.bin", "rb");
+  if (f == NULL){ //Error al leer el archivo
+    cout << "ERROR: No se pudo leer el archivo [equipos.bin]" << endl;
     return false;
   }
-  //Leo el archivo de texto
-  for(x = 0;fgets (linea, 60, f) != NULL;x++){
-    if(linea[0] == '#'){ //Ignoro encabezado
-      x--;
-      continue;
+  for(int x=0;x<32;x++){
+    registros = fread(&auxE,sizeof(equipos),1,f);
+    if(registros == 0){ //Cuando llego al final del archivo salir
+      break;
     }
-    if (ferror(f)){ //Error al leer los datos
+    e[x].id = auxE.id;
+    strncpy(e[x].nombre,auxE.nombre,30);
+    if(ferror(f)){ //Error de lectura
+      cout << "ERROR: No se pudo leer el archivo [equipos.bin]" << endl;
       return false;
     }
-    coma[0] = strchr(linea,','); //Puntero a la posicion donde esta la primera coma para cortar la fecha del partido
-    coma[1] = strchr(coma[0]+1,','); //Puntero a la posicion donde esta la segunda coma para cortar el jugador
-    coma[2] = strchr(coma[1]+1,','); //Puntero a la posicion donde esta la segunda coma para cortar el idpartido
-    eof = strchr(linea,'\r'); //Puntero a la posicion donde esta el salto de linea (CRLF)
-    if(eof == NULL){
-      eof = strchr(linea,'\n'); //Puntero a la posicion donde esta el salto de linea (LF)
-    }
-    //Fecha gol
-    temp[0] = '\0';
-    strncat(temp,linea,coma[0] - &linea[0]);
-    fecha = atoi(temp);
-    //Jugador
-    nombreJugador[0] = '\0';
-    strncat(nombreJugador,coma[0]+1,coma[1] - coma[0]-1);
-    //Id equipo
-    temp[0] = '\0';
-    strncat(temp,coma[1]+1,coma[2] - coma[1]-1);
-    idEquipo = atoi(temp);
-    //ID partido
-    temp[0] = '\0';
-    strncat(temp,coma[2]+1,eof - coma[2]-1);
-    idPartido = atoi(temp);
-    insertar(golPila,x,fecha,idEquipo,&nombreJugador[0],idPartido);
   }
   fclose(f);
   return true;
 }
 
-//Inserta un registro en la lista de goles ordenado por equipo -> fecha
-void insertar(registroGol *&listaGol, int idGol, int fecha, int codEquipo, char *nombreJugador, int idPartido){
+//Inserta un registro en la lista de goles al final de la misma
+void insertar(nodoRegistroGol *&listaGol, registroGol d){
   //Si la lista no esta vacia, declaro un nuevo Nodo
-  registroGol* nuevoNodo = new registroGol();
-  nuevoNodo -> idGol = idGol;
-  nuevoNodo -> codEquipo = codEquipo;
-  strcpy(nuevoNodo -> nombreJugador,nombreJugador);
-  nuevoNodo -> fecha = fecha;
-  nuevoNodo -> idPartido = idPartido;
+  nodoRegistroGol* nuevoNodo = new nodoRegistroGol;
+  nuevoNodo -> datos = d;
   nuevoNodo -> siguiente = NULL;
 
   //Si la lista esta vacia asignarla al nodo nuevo
@@ -220,77 +154,20 @@ void insertar(registroGol *&listaGol, int idGol, int fecha, int codEquipo, char 
     return;
   }
 
-  //Comparo con el primer elemento de la lista
-  if(listaGol -> codEquipo > codEquipo || (listaGol -> codEquipo == codEquipo && listaGol -> fecha > fecha)){
-    nuevoNodo -> siguiente = listaGol;
-    listaGol = nuevoNodo;
-    return;
-  }
-
-  registroGol *aux = listaGol; //Aux lo voy a usar para recorrer la lista
+  nodoRegistroGol *aux = listaGol; //Aux lo voy a usar para recorrer la lista
   //Recorro hasta encontrar donde insertar el nodo (o llegar al final de la lista)
-  while(aux -> siguiente != NULL
-  && (aux -> siguiente -> codEquipo < codEquipo
-  || (aux -> siguiente -> codEquipo == codEquipo && aux -> siguiente -> fecha <= fecha))){
+  while(aux -> siguiente != NULL){
     aux = aux -> siguiente;
   }
-
   //Inserto el nodo
-  nuevoNodo -> siguiente = aux -> siguiente;
   aux -> siguiente = nuevoNodo;
   return;
 }
 
-//Graba en el Archivo binario toda la lista
-bool grabarBinario(registroGol *&listaGol){
-  pausa("\n>> Presione enter para generar el archivo binario\n");
-  registroGol *pNodo;
-  pNodo = listaGol;
-  FILE* f;
-  f = fopen("..\\EJERCICIO 1\\datos.bin", "wb");
-  if (f == NULL){ //Error al abrir el archivo en modo escritura
-    return false;
-  }
-  while (pNodo != NULL){ //Recorro la lista y voy escribiendo el archivo binario
-    fwrite(pNodo,sizeof(registroGol),1,f);
-    if (ferror(f)){ //Error al escribir los datos
-      cout <<"ERROR: No se pudo generar el archivo datos.bin" << endl;
-      return false;
-    }
-    pNodo = pNodo->siguiente;
-  }
-  fclose(f);
-  cout <<"Se ha generado el archivo datos.bin de forma exitosa" << endl;
-  return true;
-}
-
-//Lee el Archivo toda la lista, en memoria
-bool leerBinario(registroGol *&listaGol){
-  registroGol aux;
-  FILE* f = fopen("..\\EJERCICIO 1\\datos.bin", "rb");
-  if (f == NULL){ //Error al leer el archivo
-    return false;
-  }
-  int registros;
-  do{
-    registros = fread(&aux,sizeof(registroGol),1,f);
-    if(registros == 0){ //Cuando llego al final del archivo salir
-      break;
-    }
-    insertar(listaGol, aux.idGol, aux.fecha, aux.codEquipo, aux.nombreJugador, aux.idPartido);
-    if(ferror(f)){ //Error de lectura
-      return false;
-    }
-  }while(true);
-  fclose(f);
-  return true;
-}
-
-void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
-  pausa("\n>> Presione enter para mostrar el listado de fechas y goles\n");
+void generarMatrizGoles(nodoRegistroGol*& listaGol, matriz mPartidos){
   int partido,x,y;
   bool crearNodo; //Bandera para indicar si se debe crear un nuevo nodo de gol en el partido actual (si el jugador coincide)
-  nodoLista* nuevoNodo = NULL,*auxNL;
+  nodoJugadorFecha* nuevoNodo = NULL,*auxNL;
   registroGol* auxRG = NULL;
   //Las filas son equipos, las columnas son cada partido que jugo dicho equipo (solo se cuentan partidos con goles)
   for(x=0 ; x<32; x++){
@@ -301,13 +178,13 @@ void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
 
   for(partido=0;listaGol != NULL;){ //
     //Si la primera columna (partido) esta vacia (NULL) insertar un nuevo nodo
-    if(mPartidos[listaGol -> codEquipo -1][partido] == NULL){
-      nuevoNodo = new nodoLista();
-      nuevoNodo -> fecha = listaGol -> fecha;
-      nuevoNodo -> goles = 1;
-      strcpy(nuevoNodo -> nombreJugador, listaGol-> nombreJugador);
+    if(mPartidos[listaGol -> datos.codEquipo -1][partido] == NULL){
+      nuevoNodo = new nodoJugadorFecha;
+      nuevoNodo -> datos.fecha = listaGol -> datos.fecha;
+      nuevoNodo -> datos.goles = 1;
+      strcpy(nuevoNodo -> datos.nombreJugador, listaGol-> datos.nombreJugador);
       nuevoNodo -> siguiente = NULL;
-      mPartidos[listaGol -> codEquipo -1][partido] = nuevoNodo; //Inserto el primer nodo de la lista enlazada de la celda
+      mPartidos[listaGol -> datos.codEquipo -1][partido] = nuevoNodo; //Inserto el primer nodo de la lista enlazada de la celda
       listaGol = listaGol -> siguiente; //Avanzo al siguiente registro de la lista de goles
       partido=0; //Reseteo el contador de partidos
       continue; //Repetir el LOOP
@@ -315,18 +192,18 @@ void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
 
     //Si el partido existente en la columna no coincide con el leido avanzar a la siguiente columna,
     //esto se repetira hasta encontrar una columna que coincida con el partido a insertar o una columna libre
-    if(mPartidos[listaGol -> codEquipo -1][partido] -> fecha != listaGol -> fecha){
+    if(mPartidos[listaGol -> datos.codEquipo -1][partido] -> datos.fecha != listaGol -> datos.fecha){
       partido++; //Aumento en 1 el contador de columnas (partido)
       continue; //Repetir el LOOP
     }
 
     //Si llego aca es que encontro un segundo registro del mismo partido,
     //hay que determinar si el gol es del mismo jugador o hay que agregar un nodo
-    auxNL = mPartidos[listaGol -> codEquipo -1][partido]; //Puntero auxiliar para recorrer la lista enlazada
+    auxNL = mPartidos[listaGol -> datos.codEquipo -1][partido]; //Puntero auxiliar para recorrer la lista enlazada
     crearNodo = true; //Si esta bandera queda en true, se añade un nodo
     while(auxNL != NULL){ //Recorro la lista
-      if(strcmp(auxNL -> nombreJugador,listaGol -> nombreJugador) == 0){ //Si el jugador es el mismo sumar los goles
-        auxNL -> goles++; //Sumo goles
+      if(strcmp(auxNL -> datos.nombreJugador,listaGol -> datos.nombreJugador) == 0){ //Si el jugador es el mismo sumar los goles
+        auxNL -> datos.goles++; //Sumo goles
         crearNodo = false; //Marco la bandera en false para evitar que se cree un nodo
         break;
       }
@@ -334,13 +211,13 @@ void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
     }
     //Si crear nodo esta en true es que no hay goles de este jugador registrados en este partido
     if(crearNodo){
-      nuevoNodo = new nodoLista();
-      nuevoNodo -> fecha = listaGol -> fecha;
-      nuevoNodo -> goles=1;
-      strcpy(nuevoNodo -> nombreJugador, listaGol-> nombreJugador);
+      nuevoNodo = new nodoJugadorFecha;
+      nuevoNodo -> datos.fecha = listaGol -> datos.fecha;
+      nuevoNodo -> datos.goles=1;
+      strcpy(nuevoNodo -> datos.nombreJugador, listaGol-> datos.nombreJugador);
       nuevoNodo -> siguiente=NULL;
       //Busco el ultimo nodo para enlazar el nodo creado
-      auxNL = mPartidos[listaGol -> codEquipo -1][partido];
+      auxNL = mPartidos[listaGol -> datos.codEquipo -1][partido];
       while(auxNL -> siguiente != NULL){
         auxNL = auxNL -> siguiente;
       }
@@ -351,86 +228,86 @@ void generarMatrizGoles(registroGol*& listaGol, matriz mPartidos){
   }
 }
 
-void insertarJugadorEnRank(lstRankFechas *&cl, nodoLista *nl,char equipo[]){
+void insertarJugadorEnRank(nodoRankFechas *&cl, nodoJugadorFecha *nl,char equipo[]){
   //Si es mi primer elemento de mi lista, completo la informacion
-  if(cl==NULL || cl -> fecha.fecha > nl -> fecha){
+  if(cl==NULL || cl -> datos.fecha > nl -> datos.fecha){
     //Creo nodo
-    lstRankFechas *nuevo = new lstRankFechas;
-    nuevo -> fecha.fecha = nl -> fecha;
-    nuevo -> fecha.lstRankJugadores = new lstRankJugador;
-    strcpy(nuevo->fecha.lstRankJugadores -> jugador.nombreJugador, nl -> nombreJugador);
-    nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
-    strcpy(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);
-    nuevo -> fecha.lstRankJugadores -> siguiente = NULL;
+    nodoRankFechas *nuevo = new nodoRankFechas;
+    nuevo -> datos.fecha = nl -> datos.fecha;
+    nuevo -> datos.nodoRankJugadores = new nodoRankJugador;
+    strcpy(nuevo->datos.nodoRankJugadores -> datos.nombreJugador, nl -> datos.nombreJugador);
+    nuevo -> datos.nodoRankJugadores -> datos.goles = nl -> datos.goles;
+    strcpy(nuevo -> datos.nodoRankJugadores -> datos.equipo,equipo);
+    nuevo -> datos.nodoRankJugadores -> siguiente = NULL;
     nuevo -> siguiente = cl;
     cl = nuevo;
     return;
   }
 
-  if(cl -> fecha.fecha == nl -> fecha){
+  if(cl -> datos.fecha == nl -> datos.fecha){
     //nUEVO NODO
-    lstRankJugador *nuevoJ = new lstRankJugador;
-    strcpy(nuevoJ -> jugador.nombreJugador,nl -> nombreJugador);
-    nuevoJ -> jugador.goles = nl -> goles;
-    strcpy(nuevoJ -> jugador.equipo,equipo);
+    nodoRankJugador *nuevoJ = new nodoRankJugador;
+    strcpy(nuevoJ -> datos.nombreJugador,nl -> datos.nombreJugador);
+    nuevoJ -> datos.goles = nl -> datos.goles;
+    strcpy(nuevoJ -> datos.equipo,equipo);
     nuevoJ -> siguiente = NULL;
 
-    lstRankJugador *lrjAux = cl -> fecha.lstRankJugadores;
-    if(cl->fecha.lstRankJugadores->jugador.goles<nl->goles){
-        nuevoJ -> siguiente = cl->fecha.lstRankJugadores;
-        cl->fecha.lstRankJugadores = nuevoJ;
+    nodoRankJugador *lrjAux = cl -> datos.nodoRankJugadores;
+    if(cl->datos.nodoRankJugadores->datos.goles<nl->datos.goles){
+        nuevoJ -> siguiente = cl->datos.nodoRankJugadores;
+        cl->datos.nodoRankJugadores = nuevoJ;
         return;
     }
     while(lrjAux -> siguiente != NULL){
-      if(lrjAux ->siguiente->jugador.goles<nl->goles){
+      if(lrjAux ->siguiente->datos.goles<nl->datos.goles){
         nuevoJ -> siguiente = lrjAux ->siguiente;
         lrjAux->siguiente = nuevoJ;
         return;
       }
-      lrjAux = lrjAux -> siguiente;    
+      lrjAux = lrjAux -> siguiente;
     }
     lrjAux -> siguiente = nuevoJ; //Asigno nuevo nodo Jugador
     return;
   }
-  
-  lstRankFechas *lrfAux = cl;
+
+  nodoRankFechas *lrfAux = cl;
   while(lrfAux -> siguiente != NULL){ // Si ya existe la fecha en mi lista
-    if(lrfAux -> siguiente -> fecha.fecha > nl -> fecha){
+    if(lrfAux -> siguiente -> datos.fecha > nl -> datos.fecha){
       //Creo nodo
-      lstRankFechas *nuevo = new lstRankFechas;
-      nuevo -> fecha.fecha = nl -> fecha;
-      nuevo -> fecha.lstRankJugadores = new lstRankJugador;
-      strcpy(nuevo->fecha.lstRankJugadores -> jugador.nombreJugador, nl -> nombreJugador);
-      nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
-      strcpy(nuevo->fecha.lstRankJugadores -> jugador.equipo,equipo);
-      nuevo -> fecha.lstRankJugadores -> siguiente = NULL;
+      nodoRankFechas *nuevo = new nodoRankFechas;
+      nuevo -> datos.fecha = nl -> datos.fecha;
+      nuevo -> datos.nodoRankJugadores = new nodoRankJugador;
+      strcpy(nuevo->datos.nodoRankJugadores -> datos.nombreJugador, nl -> datos.nombreJugador);
+      nuevo -> datos.nodoRankJugadores -> datos.goles = nl -> datos.goles;
+      strcpy(nuevo->datos.nodoRankJugadores -> datos.equipo,equipo);
+      nuevo -> datos.nodoRankJugadores -> siguiente = NULL;
       nuevo -> siguiente = lrfAux -> siguiente;
       lrfAux -> siguiente = nuevo;
       return;
     }
-    if(lrfAux -> siguiente -> fecha.fecha == nl -> fecha){
+    if(lrfAux -> siguiente -> datos.fecha == nl -> datos.fecha){
       //Nuevo nodo
-      lstRankJugador *nuevoJ = new lstRankJugador;
-      strcpy(nuevoJ -> jugador.nombreJugador,nl -> nombreJugador);
-      nuevoJ -> jugador.goles = nl -> goles;
-      strcpy(nuevoJ -> jugador.equipo,equipo);
+      nodoRankJugador *nuevoJ = new nodoRankJugador;
+      strcpy(nuevoJ -> datos.nombreJugador,nl -> datos.nombreJugador);
+      nuevoJ -> datos.goles = nl -> datos.goles;
+      strcpy(nuevoJ -> datos.equipo,equipo);
       nuevoJ -> siguiente = NULL;
-      
+
       //Comparo los goles con el primer jugador
-      //lrfAux -> siguiente -> fecha.lstRankJugadores -> jugador.goles << endl;
-      lstRankJugador *lrjAux = lrfAux -> siguiente -> fecha.lstRankJugadores;
-      if(lrfAux->siguiente->fecha.lstRankJugadores->jugador.goles<=nl->goles){
-        nuevoJ -> siguiente = lrfAux->siguiente->fecha.lstRankJugadores;
-        lrfAux->siguiente->fecha.lstRankJugadores = nuevoJ;
+      //lrfAux -> siguiente -> datos.nodoRankJugadores -> datos.goles << endl;
+      nodoRankJugador *lrjAux = lrfAux -> siguiente -> datos.nodoRankJugadores;
+      if(lrfAux->siguiente->datos.nodoRankJugadores->datos.goles<=nl->datos.goles){
+        nuevoJ -> siguiente = lrfAux->siguiente->datos.nodoRankJugadores;
+        lrfAux->siguiente->datos.nodoRankJugadores = nuevoJ;
         return;
       }
       while(lrjAux -> siguiente != NULL){
-        if(lrjAux ->siguiente->jugador.goles<=nl->goles){
+        if(lrjAux ->siguiente->datos.goles<=nl->datos.goles){
           nuevoJ -> siguiente = lrjAux ->siguiente;
           lrjAux->siguiente = nuevoJ;
           return;
         }
-        lrjAux = lrjAux -> siguiente;    
+        lrjAux = lrjAux -> siguiente;
       }
       lrjAux -> siguiente = nuevoJ; //Asigno nuevo jugador
       return;
@@ -439,65 +316,65 @@ void insertarJugadorEnRank(lstRankFechas *&cl, nodoLista *nl,char equipo[]){
   }
 
   //Creo nodo
-  lstRankFechas *nuevo = new lstRankFechas;
-  nuevo -> fecha.fecha = nl -> fecha;
-  nuevo -> fecha.lstRankJugadores = new lstRankJugador;
-  strcpy(nuevo->fecha.lstRankJugadores -> jugador.nombreJugador, nl -> nombreJugador);
-  nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
-  strcpy(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);  
-  nuevo -> fecha.lstRankJugadores -> siguiente = NULL;
+  nodoRankFechas *nuevo = new nodoRankFechas;
+  nuevo -> datos.fecha = nl -> datos.fecha;
+  nuevo -> datos.nodoRankJugadores = new nodoRankJugador;
+  strcpy(nuevo->datos.nodoRankJugadores -> datos.nombreJugador, nl -> datos.nombreJugador);
+  nuevo -> datos.nodoRankJugadores -> datos.goles = nl -> datos.goles;
+  strcpy(nuevo -> datos.nodoRankJugadores -> datos.equipo,equipo);
+  nuevo -> datos.nodoRankJugadores -> siguiente = NULL;
   nuevo -> siguiente = lrfAux -> siguiente;
   lrfAux -> siguiente = nuevo;
   return;
 }
 
-void insertarJugadorEnRankGlobal(lstRankFechas *&cl, nodoLista *nl,char equipo[]){
+void insertarJugadorEnRankGlobal(nodoRankFechas *&cl, nodoJugadorFecha *nl,char equipo[]){
   if(cl == NULL){
-    lstRankFechas *nuevo = new lstRankFechas;
-    nuevo -> fecha.lstRankJugadores = new lstRankJugador;
-    strcpy(nuevo -> fecha.lstRankJugadores -> jugador.nombreJugador,nl -> nombreJugador);
-    nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
-    strcat(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);    
-    nuevo -> siguiente = NULL;      
+    nodoRankFechas *nuevo = new nodoRankFechas;
+    nuevo -> datos.nodoRankJugadores = new nodoRankJugador;
+    strcpy(nuevo -> datos.nodoRankJugadores -> datos.nombreJugador,nl -> datos.nombreJugador);
+    nuevo -> datos.nodoRankJugadores -> datos.goles = nl -> datos.goles;
+    strcat(nuevo -> datos.nodoRankJugadores -> datos.equipo,equipo);
+    nuevo -> siguiente = NULL;
     cl = nuevo;
     return;
   }
 
-  lstRankFechas *aux = cl;
+  nodoRankFechas *aux = cl;
   while(aux -> siguiente != NULL){
-    if(strcmp(aux -> siguiente -> fecha.lstRankJugadores -> jugador.nombreJugador,nl -> nombreJugador) == 0){
-      aux -> fecha.lstRankJugadores -> jugador.goles += nl -> goles;
+    if(strcmp(aux -> siguiente -> datos.nodoRankJugadores -> datos.nombreJugador,nl -> datos.nombreJugador) == 0){
+      aux -> datos.nodoRankJugadores -> datos.goles += nl -> datos.goles;
       return;
     }
     aux = aux -> siguiente;
   }
-  lstRankFechas *nuevo = new lstRankFechas;
-  nuevo -> fecha.lstRankJugadores = new lstRankJugador;
-  strcpy(nuevo -> fecha.lstRankJugadores -> jugador.nombreJugador,nl -> nombreJugador);
-  nuevo -> fecha.lstRankJugadores -> jugador.goles = nl -> goles;
-  strcat(nuevo -> fecha.lstRankJugadores -> jugador.equipo,equipo);    
-  nuevo -> siguiente = NULL;    
+  nodoRankFechas *nuevo = new nodoRankFechas;
+  nuevo -> datos.nodoRankJugadores = new nodoRankJugador;
+  strcpy(nuevo -> datos.nodoRankJugadores -> datos.nombreJugador,nl -> datos.nombreJugador);
+  nuevo -> datos.nodoRankJugadores -> datos.goles = nl -> datos.goles;
+  strcat(nuevo -> datos.nodoRankJugadores -> datos.equipo,equipo);
+  nuevo -> siguiente = NULL;
   aux -> siguiente = nuevo;
 }
 
-void ordenarRankGlobal(lstRankFechas *&cl){
-  bool cambio ;
+void ordenarRankGlobal(nodoRankFechas *&cl){
   //Si la lista esta vacia o tiene un solo elemento salir
-  if(cl == NULL || cl -> siguiente == NULL){ 
+  if(cl == NULL || cl -> siguiente == NULL){
     return;
   }
-  lstRankFechas *aux = cl, *auxSig;
-  rankFecha temp;
-  while(aux -> siguiente != NULL){
-    auxSig = aux -> siguiente;
-    while(auxSig != NULL){
-      if(aux->fecha.lstRankJugadores -> jugador.goles < auxSig->fecha.lstRankJugadores -> jugador.goles){
-        temp = auxSig -> fecha;
-        auxSig->fecha = aux->fecha;
-        aux->fecha = temp;          
+  nodoRankFechas *aux = cl, *auxSig;
+  rankFecha temp; //Temporal para intercambiar punteros
+  //Se ordena la lista de jugadores por goles
+  while(aux -> siguiente != NULL){ //Recorro la lista hasta el penultimo nodo
+    auxSig = aux -> siguiente; //Auxiliar para recorrer el nodo n+1
+    while(auxSig != NULL){ //Recorro el nodo n+1 hasta llegar al final de la lista
+      if(aux->datos.nodoRankJugadores -> datos.goles < auxSig->datos.nodoRankJugadores -> datos.goles){ //Comparo n con n+1, si se cumple la condicion los intercambio
+        temp = auxSig -> datos;
+        auxSig->datos = aux->datos;
+        aux->datos = temp;
       }
-      auxSig = auxSig -> siguiente;                    
-    }    
+      auxSig = auxSig -> siguiente;
+    }
     aux = aux -> siguiente;
     auxSig = aux -> siguiente;
   }
@@ -505,9 +382,9 @@ void ordenarRankGlobal(lstRankFechas *&cl){
 
 void recorrerMatrizGoles (matriz mPartidos,equipos e[]){
   cout << "-------- RESULTADO RANKING PAISES --------" << endl;
-  nodoLista* auxNL = NULL;
-  lstRankFechas* cabezaRanking = NULL; // Lista de Ranking de Goleadores de una Fecha
-  lstRankFechas* cabezaRankingGlobal = NULL;
+  nodoJugadorFecha* auxNL = NULL;
+  nodoRankFechas* cabezaRanking = NULL; // Lista de Ranking de Goleadores de una Fecha
+  nodoRankFechas* cabezaRankingGlobal = NULL;
   int cantGoles,x,y;
   equipoGol eg[32];
   char fechaDmy[11];
@@ -519,11 +396,11 @@ void recorrerMatrizGoles (matriz mPartidos,equipos e[]){
       if(auxNL == NULL){ // Si no encuentro un partido registrado en esta posicion de la matriz, avanzo al siguiente.
         continue;
       }
-      formatoFecha(mPartidos[x][y] -> fecha,fechaDmy);
+      formatoFecha(mPartidos[x][y] -> datos.fecha,fechaDmy);
       cout << "\tPartido " << y+1 << " (" << fechaDmy << ")" << endl; // Encontre un partido con goles para un equipo
       while(auxNL != NULL){ // Recorro mi lista de goles para ese partido
-        cantGoles += auxNL->goles;
-        cout << "\t\t" << auxNL -> nombreJugador << " - Goles: " << auxNL-> goles << endl; //Muestro los goles de un jugador para una fecha determinada
+        cantGoles += auxNL->datos.goles;
+        cout << "\t\t" << auxNL -> datos.nombreJugador << " - Goles: " << auxNL-> datos.goles << endl; //Muestro los goles de un jugador para una fecha determinada
         insertarJugadorEnRank(cabezaRanking, auxNL,e[x].nombre);
         insertarJugadorEnRankGlobal(cabezaRankingGlobal, auxNL,e[x].nombre);
         auxNL = auxNL -> siguiente;
@@ -537,13 +414,13 @@ void recorrerMatrizGoles (matriz mPartidos,equipos e[]){
   pausa("\n>> Presione enter para mostrar el ranking de jugadores por fecha\n");
   cout << "-------- RESULTADO RANKING JUGADORES POR FECHA --------" << endl;
   while(cabezaRanking != NULL){
-    formatoFecha(cabezaRanking -> fecha.fecha,fechaDmy);
-    cout << "Fecha: " << fechaDmy << endl;    
-    while(cabezaRanking -> fecha.lstRankJugadores != NULL){
-      cout << "\t" << cabezaRanking -> fecha.lstRankJugadores -> jugador.nombreJugador;
-      cout << " - Goles: " << cabezaRanking -> fecha.lstRankJugadores -> jugador.goles;
-      cout << " - Equipo: " << cabezaRanking -> fecha.lstRankJugadores -> jugador.equipo << endl;
-      cabezaRanking -> fecha.lstRankJugadores = cabezaRanking -> fecha.lstRankJugadores -> siguiente; 
+    formatoFecha(cabezaRanking -> datos.fecha,fechaDmy);
+    cout << "Fecha: " << fechaDmy << endl;
+    while(cabezaRanking -> datos.nodoRankJugadores != NULL){
+      cout << "\t" << cabezaRanking -> datos.nodoRankJugadores -> datos.nombreJugador;
+      cout << " - Goles: " << cabezaRanking -> datos.nodoRankJugadores -> datos.goles;
+      cout << " - Equipo: " << cabezaRanking -> datos.nodoRankJugadores -> datos.equipo << endl;
+      cabezaRanking -> datos.nodoRankJugadores = cabezaRanking -> datos.nodoRankJugadores -> siguiente;
     }
     cabezaRanking = cabezaRanking -> siguiente;
   }
@@ -551,167 +428,14 @@ void recorrerMatrizGoles (matriz mPartidos,equipos e[]){
   cout << "-------- RESULTADO RANKING JUGADORES GENERAL --------" << endl;
   ordenarRankGlobal(cabezaRankingGlobal);
   while(cabezaRankingGlobal != NULL){
-    cout << "\t" << cabezaRankingGlobal -> fecha.lstRankJugadores -> jugador.nombreJugador;
-    cout << " - Goles: " << cabezaRankingGlobal -> fecha.lstRankJugadores -> jugador.goles;
-    cout << " - Equipo: " << cabezaRankingGlobal -> fecha.lstRankJugadores -> jugador.equipo << endl;
-    cabezaRankingGlobal -> fecha.lstRankJugadores = cabezaRankingGlobal -> fecha.lstRankJugadores -> siguiente; 
+    cout << "\t" << cabezaRankingGlobal -> datos.nodoRankJugadores -> datos.nombreJugador;
+    cout << " - Goles: " << cabezaRankingGlobal -> datos.nodoRankJugadores -> datos.goles;
+    cout << " - Equipo: " << cabezaRankingGlobal -> datos.nodoRankJugadores -> datos.equipo << endl;
+    cabezaRankingGlobal -> datos.nodoRankJugadores = cabezaRankingGlobal -> datos.nodoRankJugadores -> siguiente;
     cabezaRankingGlobal = cabezaRankingGlobal -> siguiente;
-  }  
-  //CREAR BTREE
-  nodoArbol *arbol = NULL;
-  for(x=0;x<32;x++){
-    insertaNodo(arbol,eg[x]);
-  }
-  pausa("\n>> Presione enter para mostrar el arbol binario completo\n");
-  cout << "--- ARBOL BINARIO DE GOLES POR EQUIPO ---" << endl;
-  cout << "Nodo: goles(cantidad equipos)\n" << endl;
-  dibujarArbol(arbol);
-  pausa("\n>> Presione enter para recorrer el arbol binario en modo inOrder\n");
-  recorrerInOrder(arbol);
-  pausa("\n>> Precione enter para salir del programa\n");
-}
-
-void equipoGolListaInsertar(equipoGolLista *&l,equipoGol valor){
-  //Creo un nodo
-  equipoGolLista *nuevo = new equipoGolLista;
-  nuevo -> dato = valor;
-  nuevo -> siguiente = NULL;
-  if(l == NULL){
-    l = nuevo;
-    return;
-  }
-  equipoGolLista *aux = l; //Puntero para recorrer
-  while(aux -> siguiente != NULL){
-    aux = aux -> siguiente;
-  }
-  aux -> siguiente = nuevo;
-}
-
-void insertaNodo(nodoArbol *&arbol,equipoGol valor){
-  //Si esta vacio insertar el nodo inicial
-  if(arbol == NULL){
-    nodoArbol *nuevo = new nodoArbol();
-    nuevo -> lista = new equipoGolLista; //Creo una nueva pila con los equipos
-    nuevo -> lista = NULL;
-    equipoGolListaInsertar(nuevo -> lista,valor);
-    nuevo -> izquierda = NULL;
-    nuevo -> derecha = NULL;
-    arbol = nuevo;
-    return;
-  }
-  //Si no esta vacío determinar a que rama va
-  if(valor.goles < arbol -> lista -> dato.goles){ //Rama izquierda
-    insertaNodo(arbol -> izquierda,valor);
-    return;
-  }
-  if(valor.goles > arbol -> lista -> dato.goles){ //Rama derecha
-    insertaNodo(arbol -> derecha,valor);
-    return;
-  }
-  if(valor.goles == arbol -> lista -> dato.goles){ //Valor duplicado no inservar
-    equipoGolListaInsertar(arbol -> lista,valor);
   }
 }
 
-//Funcion cabecera para dibujar un arbol binario por consola
-void dibujarArbol(nodoArbol *arbol){
-  char matrizCaracter[40][120];
-  int x;
-  if(arbol == NULL){ //Si el arbol esta vacío no hacer nada
-    return;
-  }
-  for(x = 0;x < 20;x++){
-    sprintf(matrizCaracter[x], "%119s", " "); //Relleno la matriz de espacios en blanco
-  }
-  dibujarArbolRecursivo(arbol, false, 0, 0, matrizCaracter); //Llamo a la funcion recursiva
-  //Dibujo el resultado del arbol binario
-  for(x = 0; x < 20; x++){
-    if(lineaEnBlanco(matrizCaracter[x],120)){ //Lineas en blanco cortar
-      break;
-    }
-    printf("%s\n", matrizCaracter[x]);
-  }
-  cout << "\n" << endl;
-}
-
-/*
- * funcion que es llamada recursivamente para dibujar un arbol binario
- * Parametros:
- *  arbol: el arbol binario a dibujar
- *  ramaIzquierda: indica si es una rama izquierda (true) o derecha (false)
- *  ajuste: margen izquierdo acumulado de las iteraciones anteriores
- *  nivelArbol: nivel de profundidad del arbol (0 es la raiz)
- *  matrizCaracter: matriz de char donde se dibuja el arbol
- * Retorna: margen a la izquierda que se debe dejar para la siguiente iteracion
-*/
-int dibujarArbolRecursivo(nodoArbol *arbol, bool ramaIzquierda, int ajuste, int nivelArbol, char matrizCaracter[20][120]){
-  char b[20]; //Buffer de char donde guardar el dato a dibujar
-  int ancho = 6; //Ancho de cada nodo - AA(BB)
-  int x;
-
-  if(arbol == NULL){ //Si llego al final de una rama retornar 0 margen
-    return 0;
-  }
-
-  equipoGolLista *aux = arbol -> lista;
-  for(x=0;aux != NULL;){
-    x++;
-    aux = aux -> siguiente;
-  }
-  sprintf(b, "%02d(%02d)", arbol->lista->dato.goles, x); //Grabo el dato en el buffer
-  //Calculo recursivamente el margen de los nodos izquierdos
-  int margenIzquierda  = dibujarArbolRecursivo(arbol->izquierda, true,ajuste,nivelArbol + 1, matrizCaracter);
-  //Calculo recursivamente el margen de los nodos derechos
-  int margenDerecha = dibujarArbolRecursivo(arbol->derecha, false,ajuste + margenIzquierda + ancho, nivelArbol + 1, matrizCaracter);
-
-  //Grabo el dato en la matriz a imprimir por pantalla con los margenes calculados (donde ajuste es el acumulado de iteraciones anteriores)
-  for(x = 0;x < ancho;x++){
-    matrizCaracter[2 * nivelArbol][ajuste + margenIzquierda + x] = b[x];
-  }
-
-  //Si es la raiz no dibujar lineas ni signos +/-
-  if(nivelArbol == 0){
-    return margenIzquierda + ancho + margenDerecha;
-  }
-
-  if(ramaIzquierda){ //Estoy dibujando un nodo izquierdo
-    //Dibujo la linea punteada --- hacia la derecha
-    for (x = 0; x < ancho + margenDerecha; x++){
-      matrizCaracter[2 * nivelArbol - 1][ajuste + margenIzquierda + ancho/2 + x] = '-';
-    }
-    //Pongo un signo de + debajo del nodo padre
-    matrizCaracter[2 * nivelArbol - 1][ajuste + margenIzquierda + ancho/2] = '+';
-    //Pongo un signo de + encima del nodo actual
-    matrizCaracter[2 * nivelArbol - 1][ajuste + margenIzquierda + ancho + margenDerecha + ancho/2] = '+';
-  }else{ //Estoy dibujando un nodo derecho
-    //Dibujo la linea punteada --- hacia la izquierda
-    for(x = 0;x < margenIzquierda + ancho;x++){
-      matrizCaracter[2 * nivelArbol - 1][ajuste - ancho/2 + x] = '-';
-    }
-    //Pongo un signo de + debajo del nodo padre
-    matrizCaracter[2 * nivelArbol - 1][ajuste + margenIzquierda + ancho/2] = '+';
-    //Pongo un signo de + encima del nodo actual
-     matrizCaracter[2 * nivelArbol - 1][ajuste - ancho/2 - 1] = '+';
-  }
-  return margenIzquierda + ancho + margenDerecha; //Retorno el margen acumulado para la proxima iteracion
-}
-
-//Recorrer el arbol en modo inorder
-void recorrerInOrder(nodoArbol *arbol){
-  //Si el arbol es null no hacer nada
-  if(arbol == NULL){
-    return;
-  }
-  equipoGolLista *aux; //Auxiliar para recorrer lista
-  recorrerInOrder(arbol -> izquierda); //Primero la rama izquierda
-  cout << "NODO (" << arbol -> lista -> dato.goles << ")" << endl;
-  aux = arbol -> lista;
-  while(aux != NULL){
-    cout << "\tEquipo: " << aux -> dato.nombreEquipo << " Goles: " << aux -> dato.goles << endl; //Luego la raiz
-    aux = aux -> siguiente;
-  }
-  recorrerInOrder(arbol -> derecha); //Por ultimo la rama derecha
-}
 
 //AUXILIARES
 //Muestra el mensaje en pantalla presione enter para continuar y espera la pulsacion de enter
@@ -722,15 +446,6 @@ void pausa(const char *msg){
   cout << msg << endl;
   getchar();
 }
-//Retorna false si el string solo tiene espacios en blanco
-bool lineaEnBlanco(char str[],int largo){
-  for(int x=0;x<largo-10;x++){
-    if(str[x] != ' '){
-      return false;
-    }
-  }
-  return true;
-}
 
 void formatoFecha(int ymd,char fecha[]){
   char buff[10],*ptr,delim = '/';
@@ -740,6 +455,6 @@ void formatoFecha(int ymd,char fecha[]){
   strncat(fecha,ptr+6,2);
   strncat(fecha,&delim,1);
   strncat(fecha,ptr+4,2);
-  strncat(fecha,&delim,1);  
+  strncat(fecha,&delim,1);
   strncat(fecha,ptr,4);
 }
